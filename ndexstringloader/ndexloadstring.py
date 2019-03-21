@@ -7,6 +7,27 @@ from logging import config
 from ndexutil.config import NDExUtilConfig
 import ndexstringloader
 
+import csv
+import pandas as pd
+import json
+
+from datetime import datetime
+
+import gzip
+import shutil
+
+import os
+
+
+import ndexutil.tsv.tsv2nicecx2 as t2n
+
+import configparser
+
+import urllib
+
+import requests
+
+
 logger = logging.getLogger(__name__)
 
 TSV2NICECXMODULE = 'ndexutil.tsv.tsv2nicecx2'
@@ -24,6 +45,7 @@ def _parse_arguments(desc, args):
     help_fm = argparse.RawDescriptionHelpFormatter
     parser = argparse.ArgumentParser(description=desc,
                                      formatter_class=help_fm)
+
     parser.add_argument('--profile', help='Profile in configuration '
                                           'file to use to load '
                                           'NDEx credentials which means'
@@ -34,8 +56,7 @@ def _parse_arguments(desc, args):
                         default='ndexstringloader')
     parser.add_argument('--logconf', default=None,
                         help='Path to python logging configuration file in '
-                             'this format: https://docs.python.org/3/library/'
-                             'logging.config.html#logging-config-fileformat '
+                             'this format: https://docs.python.org/3/library/logging.config.html#logging-config-fileformat'
                              'Setting this overrides -v parameter which uses '
                              ' default logger. (default None)')
 
@@ -85,28 +106,106 @@ class NDExNdexstringloaderLoader(object):
     """
     Class to load content
     """
+
     def __init__(self, args):
         """
-
         :param args:
         """
         self._conf_file = args.conf
         self._profile = args.profile
-        self._user = None
-        self._pass = None
-        self._server = None
+
 
     def _parse_config(self):
-            """
-            Parses config
-            :return:
-            """
-            ncon = NDExUtilConfig(conf_file=self._conf_file)
-            con = ncon.get_config()
-            self._user = con.get(self._profile, NDExUtilConfig.USER)
-            self._pass = con.get(self._profile, NDExUtilConfig.PASSWORD)
-            self._server = con.get(self._profile, NDExUtilConfig.SERVER)
+        """
+        Parses config
+        :return:
+        """
+        ncon = NDExUtilConfig(conf_file=self._conf_file)
+        con = ncon.get_config()
+        self._user = con.get(self._profile, NDExUtilConfig.USER)
+        self._pass = con.get(self._profile, NDExUtilConfig.PASSWORD)
+        self._server = con.get(self._profile, NDExUtilConfig.SERVER)
 
+        self._template_id = con.get('network_ids', 'style')
+        self._hi_conf_template_id = con.get('network_ids', 'hi_confidence_style')
+        self._network_id = con.get('network_ids', 'full')
+        self._hi_conf_network_id = con.get('network_ids', 'hi_confidence')
+
+        self._protein_links_url = con.get('source', 'ProteinLinksFile')
+        self._names_file_url = con.get('source', 'NamesFile')
+        self._entrez_ids_file_url = con.get('source', 'EntrezIdsFile')
+        self._uniprot_ids_file_url = con.get('source', 'UniprotIdsFile')
+
+        self._full_file_name = con.get('input', 'full_file_name')
+        self._entrez_file = con.get('input', 'entrez_file')
+        self._names_file = con.get('input', 'names_file')
+        self._uniprot_file = con.get('input', 'uniprot_file')
+
+        self._load_plan = 'string_plan.json'
+
+        self._output_tsv_file_name = con.get('output', 'output_tsv_file_name')
+        self._output_hi_conf_tsv_file_name = con.get('output', 'output_hi_conf_tsv_file_name')
+
+
+    def _download(self, url, local_file_name):
+        r = requests.get(url)
+        with open(local_file_name, "wb") as code:
+            code.write(r.content)
+
+    def _unzip(self, local_file_name):
+        with gzip.open(local_file_name + '.gz', 'rb') as f_in:
+            with open(local_file_name, 'wb') as f_out:
+                shutil.copyfileobj(f_in, f_out)
+
+        os.remove(local_file_name + '.gz')
+
+    def _download_STRING_files(self):
+        """
+        Parses config
+        :return:
+        """
+        self._download(self._protein_links_url, self._full_file_name + '.gz')
+        self._download(self._names_file_url, self._entrez_file + '.gz')
+        self._download(self._entrez_ids_file_url, self._names_file + '.gz')
+        self._download(self._uniprot_ids_file_url, self._uniprot_file + '.gz')
+
+    def _unpack_STRING_files(self):
+        """
+        Parses config
+        :return:
+        """
+        self._unzip(self._full_file_name)
+        self._unzip(self._entrez_file)
+        self._unzip(self._names_file)
+        self._unzip(self._uniprot_file)
+
+
+    def _get_name_rep_alias(self, ensembl_protein_id, ensembl_ids):
+        name_rep_alias = ensembl_ids[ensembl_protein_id]
+        use_ensembl_id_for_represents = False
+
+        if name_rep_alias['display_name'] is None:
+            use_ensembl_id_for_represents = True
+            name_rep_alias['display_name'] = 'ensembl:' + ensembl_protein_id.split('.')[1]
+
+        if name_rep_alias['represents'] is None:
+            if use_ensembl_id_for_represents:
+                name_rep_alias['represents'] = name_rep_alias['display_name']
+            else:
+                name_rep_alias['represents'] = 'hgnc:' + name_rep_alias['display_name']
+
+        if name_rep_alias['alias'] is None:
+            if use_ensembl_id_for_represents:
+                name_rep_alias['alias'] = name_rep_alias['display_name']
+            else:
+                name_rep_alias['alias'] = name_rep_alias['represents']
+
+        ret_str = \
+            name_rep_alias['display_name'] + '\t' + \
+            name_rep_alias['represents'] + '\t' + \
+            name_rep_alias['alias']
+
+        return ret_str
 
     def run(self):
         """
@@ -115,7 +214,293 @@ class NDExNdexstringloaderLoader(object):
         :return:
         """
         self._parse_config()
+
+        self._download_STRING_files()
+
+        self._unpack_STRING_files()
+
+
+        ensembl_ids = {}
+        duplicate_display_names = {}
+        duplicate_uniprot_ids = {}
+
+        output_tsv_file_columns = [
+            "name1",
+            "represents1",
+            "alias1",
+            "name2",
+            "represents2",
+            "alias2",
+            "neighborhood",
+            "neighborhood_transferred",
+            "fusion",
+            "cooccurence",
+            "homology",
+            "coexpression",
+            "coexpression_transferred",
+            "experiments",
+            "experiments_transferred",
+            "database",
+            "database_transferred",
+            "textmining",
+            "textmining_transferred",
+            "combined_score"
+        ]
+
+        print('\nLoading {} for reading...'.format(self._full_file_name))
+
+        with open(self._full_file_name, 'r') as f:
+            d_reader = csv.DictReader(f)
+            headers = ((d_reader.fieldnames)[0]).split()
+
+        print('{} loaded\n'.format(self._full_file_name))
+
+        print('Preparing a dictionary of Ensembl Ids ...')
+
+        for i in range(2):
+            df = pd.read_csv(self._full_file_name, sep='\s+', skipinitialspace=True, usecols=[headers[i]])
+            df.sort_values(headers[i], inplace=True)
+            df.drop_duplicates(subset=headers[i], keep='first', inplace=True)
+
+            for index, row in df.iterrows():
+                ensembl_ids[row[headers[i]]] = {}
+                ensembl_ids[row[headers[i]]]['display_name'] = None
+                ensembl_ids[row[headers[i]]]['alias'] = None
+                ensembl_ids[row[headers[i]]]['represents'] = None
+
+        print('Found {:,} unique Ensembl Ids in {}\n'.format(len(ensembl_ids), self._full_file_name))
+
+
+
+        #populate name - 4.display name -> becomes name
+
+        print('Populating display names from {}...'.format(self._names_file))
+        row_count = 0
+
+        with open(self._names_file, 'r') as f:
+            next(f)
+            row1 = csv.reader(f, delimiter=' ')
+            for row in row1:
+                columns_in_row = row[0].split()
+                ensembl_id = columns_in_row[2]
+                display_name = columns_in_row[1]
+
+                if ensembl_id in ensembl_ids:
+
+                    if (ensembl_ids[ensembl_id]['display_name'] is None):
+                        ensembl_ids[ensembl_id]['display_name'] = display_name
+
+                    elif display_name != ensembl_ids[ensembl_id]['display_name']:
+                        # duplicate: we found entries in human.name_2_string.tsv where same Ensembl Id maps to
+                        # multiple display name.  This should never happen though
+                        if ensembl_id not in duplicate_display_names:
+                            duplicate_display_names[ensembl_id] = []
+                            duplicate_display_names[ensembl_id].append(ensembl_ids[ensembl_id]['display_name'])
+
+                        duplicate_display_names[ensembl_id].append(display_name)
+
+                row_count = row_count + 1;
+
+        print('Populated {:,} display names from {}\n'.format(row_count, self._names_file))
+
+
+        # populate alias - 3. node string id -> becomes alias, for example
+        # ensembl:ENSP00000000233|ncbigene:857
+
+        print('Populating aliases from {}...'.format(self._entrez_file))
+        row_count = 0
+
+        with open(self._entrez_file, 'r') as f:
+            next(f)
+            row1 = csv.reader(f, delimiter=' ')
+            for row in row1:
+                columns_in_row = row[0].split()
+                ensembl_id = columns_in_row[2]
+                ncbi_gene_id = columns_in_row[1]
+
+                if ensembl_id in ensembl_ids:
+
+                    if (ensembl_ids[ensembl_id]['alias'] is None):
+
+                        ensembl_alias = 'ensembl:' + ensembl_id.split('.')[1]
+
+                        # ncbi_gene_id can be |-separated list, for example, '246721|548644'
+                        ncbi_gene_id_split = ncbi_gene_id.split('|')
+
+                        ncbi_gene_id_split = ['ncbigene:' + element + '|' for element in ncbi_gene_id_split]
+
+                        if (len(ncbi_gene_id_split) > 1):
+                            alias_string = "".join(ncbi_gene_id_split) + ensembl_alias
+                        else:
+                            alias_string = ncbi_gene_id_split[0] + ensembl_alias
+
+                        ensembl_ids[ensembl_id]['alias'] = alias_string
+
+                    else:
+                        pass
+
+                row_count = row_count + 1;
+
+        print('Populated {:,} aliases from {}\n'.format(row_count, self._entrez_file))
+
+
+        print('Populating represents from {}...'.format(self._uniprot_file))
+        row_count = 0
+
+        with open(self._uniprot_file, 'r') as f:
+            next(f)
+            row1 = csv.reader(f, delimiter=' ')
+            for row in row1:
+                columns_in_row = row[0].split()
+                ensembl_id = columns_in_row[2]
+                uniprot_id = columns_in_row[1].split('|')[0]
+
+                if ensembl_id in ensembl_ids:
+
+                    if (ensembl_ids[ensembl_id]['represents'] is None):
+                        ensembl_ids[ensembl_id]['represents'] = 'uniprot:' + uniprot_id
+
+                    elif uniprot_id != ensembl_ids[ensembl_id]['represents']:
+                        # duplicate: we found entries in human.uniprot_2_string.tsv where same Ensembl Id maps to
+                        # multiple uniprot ids.
+                        if ensembl_id not in duplicate_uniprot_ids:
+                            duplicate_uniprot_ids[ensembl_id] = []
+                            duplicate_uniprot_ids[ensembl_id].append(ensembl_ids[ensembl_id]['represents'])
+
+                            duplicate_uniprot_ids[ensembl_id].append(uniprot_id)
+
+                row_count = row_count + 1;
+
+        print('Populated {:,} represents from {}\n'.format(row_count, self._uniprot_file))
+
+
+
+        # iterate over ensembl_ids and see if there is any unresolved
+        # display names, aliases or represents
+
+        #for key, value in ensembl_ids.items():
+        #    k, v = key, value
+
+        #    if value['display_name'] is None or value['alias'] is None or value['represents'] is None:
+        #        print('For {} values are {}'.format(key, value))
+
+        # generate output tsv files: one general and one high confidence
+        print('Creating target {} and {} files...'.format(self._output_tsv_file_name, self._output_hi_conf_tsv_file_name))
+
+        with open(self._output_tsv_file_name, 'w') as o_f, open(self._output_hi_conf_tsv_file_name, 'w') as o_hi_conf_f:
+
+            # write header to the output tsv file
+            output_header = '\t'.join([x for x in output_tsv_file_columns]) + '\n'
+            o_f.write(output_header)
+            o_hi_conf_f.write(output_header)
+
+            row_count = 1
+            row_count_hi_conf = 1
+
+            with open(self._full_file_name, 'r') as f_f:
+                next(f_f)
+                for line in f_f:
+                    columns_in_row = line.split(' ');
+                    protein1, protein2 = columns_in_row[0], columns_in_row[1]
+
+                    name_rep_alias_1 = self._get_name_rep_alias(protein1, ensembl_ids)
+                    name_rep_alias_2 = self._get_name_rep_alias(protein2, ensembl_ids)
+
+                    full_tsv_string = name_rep_alias_1 + '\t' + name_rep_alias_2 + '\t' + '\t'.join(x for x in columns_in_row[2:])
+
+                    o_f.write(full_tsv_string)
+                    row_count = row_count + 1
+
+                    combined_score = int(columns_in_row[-1].rstrip('\n'))
+                    if combined_score > 700:
+                        o_hi_conf_f.write(full_tsv_string)
+                        row_count_hi_conf = row_count_hi_conf + 1
+
+        print('Created {} ({:,} lines) and {} ({:,} lines) files\n'.\
+              format(self._output_tsv_file_name, row_count, self._output_hi_conf_tsv_file_name, row_count_hi_conf))
+
         return 0
+
+    def load_to_NDEx(self):
+
+        load_plan = None
+        with open(self._load_plan, 'r') as lp:
+            load_plan = json.load(lp)
+
+        print(str(datetime.now()) + " - reading file into panda data frame.\n")
+
+        file_name = self._output_tsv_file_name
+
+        dataframe = pd.read_csv(file_name, sep='\s+', skipinitialspace=True)
+
+        print(str(datetime.now()) + " - done reading.\n")
+
+        network = t2n.convert_pandas_to_nice_cx_with_load_plan(dataframe, load_plan)
+
+        print(str(datetime.now()) + " in memory cx created from panda dataframe.\n")
+
+        # post processing.
+
+        network.set_name("STRING-Human Protein Links")
+        network.set_network_attribute("description",
+                                      """This network contains human protein links with combined scores. All duplicate
+                                  interactions were removed thus reducing the total number of interactions by 50%.
+                                  Edge color was mapped to the Score value using a gradient from light grey (low Score) to black (high Score).
+                                      """)
+        version = '11.0'
+        network.set_network_attribute("version", version)
+        network.set_network_attribute("organism", "Human, 9606, Homo sapiens")
+        network.set_network_attribute("networkType", "Protein-Protein Interaction")
+        network.set_network_attribute("reference",
+                                      "Szklarczyk D, Morris JH, Cook H, Kuhn M, Wyder S, Simonovic M, Santos A, Doncheva NT, Roth A, Bork P, Jensen LJ, von Mering C." +
+                                      '<b>The STRING database in 2017: quality-controlled protein-protein association networks, made broadly accessible.</b>' +
+                                      'Nucleic Acids Res. 2017 Jan; 45:D362-68. <a href="https://doi.org/10.1093/nar/gkw937">DOI:10.1093/nar/gkw937</a>')
+
+        #if args.template_id:
+        network.apply_template(username=self._user, password=self._pass, server=self._server,
+                               uuid=self._template_id)
+
+        network.update_to(self._network_id, self._server, self._user, self._pass)
+        print(str(datetime.now()) + " network updated.\n")
+
+
+
+        print(str(datetime.now()) + " - reading file into panda data frame.\n")
+
+        file_name = self._output_hi_conf_tsv_file_name
+
+        dataframe = pd.read_csv(file_name, sep='\s+', skipinitialspace=True)
+
+        print(str(datetime.now()) + " - done reading.\n")
+
+        network = t2n.convert_pandas_to_nice_cx_with_load_plan(dataframe, load_plan)
+
+        print(str(datetime.now()) + " in memory cx created from panda dataframe.\n")
+
+        # post processing.
+
+        network.set_name("STRING - Human Protein Links - High Confidence (Score > 0.7)")
+        network.set_network_attribute("description",
+                                      """This network contains human protein links with combined scores. All duplicate
+                                  interactions were removed thus reducing the total number of interactions by 50%.
+                                  Edge color was mapped to the Score value using a gradient from light grey (low Score) to black (high Score).
+                                      """)
+        version = '11.0'
+        network.set_network_attribute("version", version)
+        network.set_network_attribute("organism", "Human, 9606, Homo sapiens")
+        network.set_network_attribute("networkType", "Protein-Protein Interaction")
+        network.set_network_attribute("reference",
+                                      "Szklarczyk D, Morris JH, Cook H, Kuhn M, Wyder S, Simonovic M, Santos A, Doncheva NT, Roth A, Bork P, Jensen LJ, von Mering C." +
+                                      '<b>The STRING database in 2017: quality-controlled protein-protein association networks, made broadly accessible.</b>' +
+                                      'Nucleic Acids Res. 2017 Jan; 45:D362-68. <a href="https://doi.org/10.1093/nar/gkw937">DOI:10.1093/nar/gkw937</a>')
+
+        #if args.template_id:
+        network.apply_template(username=self._user, password=self._pass, server=self._server,
+                               uuid=self._hi_conf_template_id)
+
+        network.update_to(self._hi_conf_network_id, self._server, self._user, self._pass)
+        print(str(datetime.now()) + " network updated.\n")
+
 
 def main(args):
     """
@@ -127,20 +512,20 @@ def main(args):
     Version {version}
 
     Loads NDEx STRING Content Loader data into NDEx (http://ndexbio.org).
-    
+
     To connect to NDEx server a configuration file must be passed
-    into --conf parameter. If --conf is unset the configuration 
-    the path ~/{confname} is examined. 
-         
+    into --conf parameter. If --conf is unset the configuration
+    the path ~/{confname} is examined.
+
     The configuration file should be formatted as follows:
-         
+
     [<value in --profile (default ncipid)>]
-         
+
     {user} = <NDEx username>
     {password} = <NDEx password>
     {server} = <NDEx server(omit http) ie public.ndexbio.org>
-    
-    
+
+
     """.format(confname=NDExUtilConfig.CONFIG_FILE,
                user=NDExUtilConfig.USER,
                password=NDExUtilConfig.PASSWORD,
@@ -153,7 +538,10 @@ def main(args):
     try:
         _setup_logging(theargs)
         loader = NDExNdexstringloaderLoader(theargs)
-        return loader.run()
+        loader.run()
+        loader.load_to_NDEx()
+        return 0
+
     except Exception as e:
         logger.exception('Caught exception')
         return 2

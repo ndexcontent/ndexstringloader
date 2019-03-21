@@ -1,0 +1,101 @@
+{
+    "context":
+    {
+        "ncbigene": "http://identifiers.org/ncbigene/",
+        "pubmed":  "http://identifiers.org/pubmed/",
+        "uniprot": "http://identifiers.org/uniprot/",
+        "ensembl": "http://identifiers.org/ensembl/",
+        "hgnc": "http://identifiers.org/hgnc.symbol/"
+    },
+    "source_plan":
+    {
+        "rep_prefix": "",
+        "rep_column": "represents1",
+        "node_name_column": "name1",
+        "property_columns":
+           [{
+                 "column_name": "alias1",
+                 "attribute_name": "alias",
+                 "data_type": "list_of_string",
+                 "delimiter" : "|"
+             }]
+    },
+
+    "target_plan":
+    {
+        "rep_prefix": "",
+        "rep_column": "represents2",
+        "node_name_column": "name2",
+        "property_columns":
+           [{
+                 "column_name": "alias2",
+                 "attribute_name": "alias",
+                 "data_type": "list_of_string",
+                 "delimiter" : "|"
+             }]
+    },
+
+    "edge_plan":
+    {
+        "default_predicate": "interacts-with",
+        "property_columns": [
+            {
+                "column_name": "neighborhood",
+                "data_type": "double"
+            },
+            {
+                "column_name": "neighborhood_transferred",
+                "data_type": "double"
+            },
+            {
+                "column_name": "fusion",
+                "data_type": "double"
+            },
+            {
+                "column_name": "cooccurence",
+                "data_type": "double"
+            },
+            {
+                "column_name": "homology",
+                "data_type": "double"
+            },
+            {
+                "column_name": "coexpression",
+                "data_type": "double"
+            },
+            {
+                "column_name": "coexpression_transferred",
+                "data_type": "double"
+            },
+            {
+                "column_name": "experiments",
+                "data_type": "double"
+            },
+            {
+                "column_name": "experiments_transferred",
+                "data_type": "double"
+            },
+            {
+                "column_name": "database",
+                "data_type": "double"
+            },
+            {
+                "column_name": "database_transferred",
+                "data_type": "double"
+            },
+            {
+                "column_name": "textmining",
+                "data_type": "double"
+            },
+            {
+                "column_name": "textmining_transferred",
+                "data_type": "double"
+            },
+            {
+                "column_name": "combined_score",
+                "data_type": "double"
+            }
+
+        ]
+    }
+}
