@@ -106,14 +106,12 @@ class NDExNdexstringloaderLoader(object):
     """
     Class to load content
     """
-
     def __init__(self, args):
         """
         :param args:
         """
         self._conf_file = args.conf
         self._profile = args.profile
-
 
     def _parse_config(self):
         """
@@ -146,7 +144,6 @@ class NDExNdexstringloaderLoader(object):
         self._output_tsv_file_name = con.get('output', 'output_tsv_file_name')
         self._output_hi_conf_tsv_file_name = con.get('output', 'output_hi_conf_tsv_file_name')
 
-
     def _download(self, url, local_file_name):
         r = requests.get(url)
         with open(local_file_name, "wb") as code:
@@ -165,8 +162,8 @@ class NDExNdexstringloaderLoader(object):
         :return:
         """
         self._download(self._protein_links_url, self._full_file_name + '.gz')
-        self._download(self._names_file_url, self._entrez_file + '.gz')
-        self._download(self._entrez_ids_file_url, self._names_file + '.gz')
+        self._download(self._names_file_url, self._names_file + '.gz')
+        self._download(self._entrez_ids_file_url, self._entrez_file + '.gz')
         self._download(self._uniprot_ids_file_url, self._uniprot_file + '.gz')
 
     def _unpack_STRING_files(self):
@@ -178,7 +175,6 @@ class NDExNdexstringloaderLoader(object):
         self._unzip(self._entrez_file)
         self._unzip(self._names_file)
         self._unzip(self._uniprot_file)
-
 
     def _get_name_rep_alias(self, ensembl_protein_id, ensembl_ids):
         name_rep_alias = ensembl_ids[ensembl_protein_id]
@@ -421,27 +417,27 @@ class NDExNdexstringloaderLoader(object):
 
         return 0
 
-    def load_to_NDEx(self):
+    def _load_to_NDEx(self, file_name, network_name, network_id, template_id):
 
         load_plan = None
         with open(self._load_plan, 'r') as lp:
             load_plan = json.load(lp)
 
-        print(str(datetime.now()) + " - reading file into panda data frame.\n")
-
-        file_name = self._output_tsv_file_name
+        print('{} - reading {} into panda data frame...'.format(str(datetime.now()), file_name))
 
         dataframe = pd.read_csv(file_name, sep='\s+', skipinitialspace=True)
 
-        print(str(datetime.now()) + " - done reading.\n")
+        print('{} - done reading\n'.format(str(datetime.now()), file_name))
+        print('{} - converting panda dataframe to NiceCX ...'.format(str(datetime.now())))
 
         network = t2n.convert_pandas_to_nice_cx_with_load_plan(dataframe, load_plan)
 
-        print(str(datetime.now()) + " in memory cx created from panda dataframe.\n")
+        print('{} - in memory CX created from panda dataframe\n'.format(str(datetime.now())))
+
 
         # post processing.
 
-        network.set_name("STRING-Human Protein Links")
+        network.set_name(network_name)
         network.set_network_attribute("description",
                                       """This network contains human protein links with combined scores. All duplicate
                                   interactions were removed thus reducing the total number of interactions by 50%.
@@ -456,50 +452,35 @@ class NDExNdexstringloaderLoader(object):
                                       '<b>The STRING database in 2017: quality-controlled protein-protein association networks, made broadly accessible.</b>' +
                                       'Nucleic Acids Res. 2017 Jan; 45:D362-68. <a href="https://doi.org/10.1093/nar/gkw937">DOI:10.1093/nar/gkw937</a>')
 
-        #if args.template_id:
+        print('{} - updating network {} on {} for user {}\n'.format(str(datetime.now()), network_id, self._server, self._user))
+
         network.apply_template(username=self._user, password=self._pass, server=self._server,
-                               uuid=self._template_id)
+                               uuid=template_id)
 
-        network.update_to(self._network_id, self._server, self._user, self._pass)
-        print(str(datetime.now()) + " network updated.\n")
+        network.update_to(network_id, self._server, self._user, self._pass)
+        print('{} - network {} updated\n\n'.format(str(datetime.now()), network_id))
+
+        return
 
 
-
-        print(str(datetime.now()) + " - reading file into panda data frame.\n")
+    def load_to_NDEx(self):
 
         file_name = self._output_hi_conf_tsv_file_name
+        network_name = "STRING - Human Protein Links - High Confidence (Score > 0.7)"
+        network_id = self._hi_conf_network_id
+        template_id = self._hi_conf_template_id
 
-        dataframe = pd.read_csv(file_name, sep='\s+', skipinitialspace=True)
+        self._load_to_NDEx(file_name, network_name, network_id, template_id)
 
-        print(str(datetime.now()) + " - done reading.\n")
 
-        network = t2n.convert_pandas_to_nice_cx_with_load_plan(dataframe, load_plan)
 
-        print(str(datetime.now()) + " in memory cx created from panda dataframe.\n")
+        file_name = self._output_tsv_file_name
+        network_name = "STRING - Human Protein Links"
+        network_id = self._network_id
+        template_id = self._template_id
 
-        # post processing.
+        self._load_to_NDEx(file_name, network_name, network_id, template_id)
 
-        network.set_name("STRING - Human Protein Links - High Confidence (Score > 0.7)")
-        network.set_network_attribute("description",
-                                      """This network contains human protein links with combined scores. All duplicate
-                                  interactions were removed thus reducing the total number of interactions by 50%.
-                                  Edge color was mapped to the Score value using a gradient from light grey (low Score) to black (high Score).
-                                      """)
-        version = '11.0'
-        network.set_network_attribute("version", version)
-        network.set_network_attribute("organism", "Human, 9606, Homo sapiens")
-        network.set_network_attribute("networkType", "Protein-Protein Interaction")
-        network.set_network_attribute("reference",
-                                      "Szklarczyk D, Morris JH, Cook H, Kuhn M, Wyder S, Simonovic M, Santos A, Doncheva NT, Roth A, Bork P, Jensen LJ, von Mering C." +
-                                      '<b>The STRING database in 2017: quality-controlled protein-protein association networks, made broadly accessible.</b>' +
-                                      'Nucleic Acids Res. 2017 Jan; 45:D362-68. <a href="https://doi.org/10.1093/nar/gkw937">DOI:10.1093/nar/gkw937</a>')
-
-        #if args.template_id:
-        network.apply_template(username=self._user, password=self._pass, server=self._server,
-                               uuid=self._hi_conf_template_id)
-
-        network.update_to(self._hi_conf_network_id, self._server, self._user, self._pass)
-        print(str(datetime.now()) + " network updated.\n")
 
 
 def main(args):
