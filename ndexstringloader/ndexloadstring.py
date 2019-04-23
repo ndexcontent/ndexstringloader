@@ -18,14 +18,18 @@ import shutil
 
 import os
 
-
 import ndexutil.tsv.tsv2nicecx2 as t2n
 
-import configparser
+from ndexutil.tsv.streamtsvloader import StreamTSVLoader
 
+
+
+import configparser
 import urllib
 
 import requests
+
+import ndex2
 
 
 logger = logging.getLogger(__name__)
@@ -417,49 +421,45 @@ class NDExNdexstringloaderLoader(object):
 
         return 0
 
-    def _load_to_NDEx(self, file_name, network_name, network_id, template_id):
 
-        load_plan = None
-        with open(self._load_plan, 'r') as lp:
-            load_plan = json.load(lp)
+    def _generate_CX_file(self, file_name, network_name, network_id, template_id):
+        template_network = ndex2.create_nice_cx_from_server(server=self._server,
+                                                            uuid=template_id,
+                                                            username=self._user,
+                                                            password=self._pass)
+        new_cx_file = file_name + '.cx'
 
-        print('{} - reading {} into panda data frame...'.format(str(datetime.now()), file_name))
+        print('{} - generating CX file for network {}...'.format(str(datetime.now()), network_name))
 
-        dataframe = pd.read_csv(file_name, sep='\s+', skipinitialspace=True)
+        with open(file_name, 'r') as tsvfile:
 
-        print('{} - done reading\n'.format(str(datetime.now()), file_name))
-        print('{} - converting panda dataframe to NiceCX ...'.format(str(datetime.now())))
+            with open(new_cx_file, "w") as out:
+                loader = StreamTSVLoader(self._load_plan, template_network)
 
-        network = t2n.convert_pandas_to_nice_cx_with_load_plan(dataframe, load_plan)
+                loader.write_cx_network(tsvfile, out,
+                                        [
+                                            {'n': 'name', 'v': network_name},
+                                            {'n': 'description', 'v': template_network.get_network_attribute('description')['v']},
+                                            {'n': 'version', 'v': template_network.get_network_attribute('version')['v']},
+                                            {'n': 'organism', 'v': 'Human, 9606, Homo sapiens'},
+                                            {'n': 'networkType', 'v': 'Protein-Protein Interaction'},
+                                            {'n': 'reference', 'v': template_network.get_network_attribute('reference')['v']},
+                                        ])
 
-        print('{} - in memory CX created from panda dataframe\n'.format(str(datetime.now())))
+        print('{} - CX file for network {} generated\n'.format(str(datetime.now()), network_name))
+        return new_cx_file
 
 
-        # post processing.
+    def _update_network_on_server(self, new_cx_file, network_name, network_id):
 
-        network.set_name(network_name)
-        network.set_network_attribute("description",
-                                      """This network contains human protein links with combined scores. All duplicate
-                                  interactions were removed thus reducing the total number of interactions by 50%.
-                                  Edge color was mapped to the Score value using a gradient from light grey (low Score) to black (high Score).
-                                      """)
-        version = '11.0'
-        network.set_network_attribute("version", version)
-        network.set_network_attribute("organism", "Human, 9606, Homo sapiens")
-        network.set_network_attribute("networkType", "Protein-Protein Interaction")
-        network.set_network_attribute("reference",
-                                      "Szklarczyk D, Morris JH, Cook H, Kuhn M, Wyder S, Simonovic M, Santos A, Doncheva NT, Roth A, Bork P, Jensen LJ, von Mering C." +
-                                      '<b>The STRING database in 2017: quality-controlled protein-protein association networks, made broadly accessible.</b>' +
-                                      'Nucleic Acids Res. 2017 Jan; 45:D362-68. <a href="https://doi.org/10.1093/nar/gkw937">DOI:10.1093/nar/gkw937</a>')
+        print('{} - updating network {} on server {}...'.format(str(datetime.now()), network_name, self._server))
 
-        print('{} - updating network {} on {} for user {}\n'.format(str(datetime.now()), network_id, self._server, self._user))
+        with open(new_cx_file, 'br') as network_out:
 
-        network.apply_template(username=self._user, password=self._pass, server=self._server,
-                               uuid=template_id)
+            my_client = ndex2.client.Ndex2(host=self._server, username=self._user, password=self._pass)
+            my_client.update_cx_network(network_out, network_id)
 
-        network.update_to(network_id, self._server, self._user, self._pass)
-        print('{} - network {} updated\n\n'.format(str(datetime.now()), network_id))
-
+        print('{} - network {} updated on server {}...\n\n'.format(str(datetime.now()), network_name, self._server))
         return
 
 
@@ -470,8 +470,8 @@ class NDExNdexstringloaderLoader(object):
         network_id = self._hi_conf_network_id
         template_id = self._hi_conf_template_id
 
-        self._load_to_NDEx(file_name, network_name, network_id, template_id)
-
+        cx_file_name = self._generate_CX_file(file_name, network_name, network_id, template_id)
+        self._update_network_on_server(cx_file_name, network_name, network_id)
 
 
         file_name = self._output_tsv_file_name
@@ -479,7 +479,8 @@ class NDExNdexstringloaderLoader(object):
         network_id = self._network_id
         template_id = self._template_id
 
-        self._load_to_NDEx(file_name, network_name, network_id, template_id)
+        cx_file_name = self._generate_CX_file(file_name, network_name, network_id, template_id)
+        self._update_network_on_server(cx_file_name, network_name, network_id)
 
 
 
