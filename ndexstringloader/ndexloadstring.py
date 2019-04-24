@@ -463,14 +463,14 @@ class NDExNdexstringloaderLoader(object):
 
     def _update_network_on_server(self, new_cx_file, network_name, network_id):
 
-        print('{} - updating network {} on server {}...'.format(str(datetime.now()), network_name, self._server))
+        print('{} - updating network {} on server {} for user {}...'.format(str(datetime.now()), network_name, self._server, self._user))
 
         with open(new_cx_file, 'br') as network_out:
 
             my_client = ndex2.client.Ndex2(host=self._server, username=self._user, password=self._pass)
             my_client.update_cx_network(network_out, network_id)
 
-        print('{} - network {} updated on server {}\n\n'.format(str(datetime.now()), network_name, self._server))
+        print('{} - network {} updated on server {} for user {}\n'.format(str(datetime.now()), network_name, self._server, self._user))
         return
 
 
