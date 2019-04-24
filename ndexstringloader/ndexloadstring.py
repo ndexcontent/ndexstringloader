@@ -67,6 +67,7 @@ def _parse_arguments(desc, args):
     parser.add_argument('--conf', help='Configuration file to load '
                                        '(default ~/' +
                                        NDExUtilConfig.CONFIG_FILE)
+    parser.add_argument('--loadplan', help='Load plan json file', required=True)
     parser.add_argument('--verbose', '-v', action='count', default=0,
                         help='Increases verbosity of logger to standard '
                              'error for log messages in this module and'
@@ -116,6 +117,7 @@ class NDExNdexstringloaderLoader(object):
         """
         self._conf_file = args.conf
         self._profile = args.profile
+        self._load_plan = args.loadplan
 
     def _parse_config(self):
         """
@@ -143,22 +145,31 @@ class NDExNdexstringloaderLoader(object):
         self._names_file = con.get('input', 'names_file')
         self._uniprot_file = con.get('input', 'uniprot_file')
 
-        self._load_plan = 'string_plan.json'
-
         self._output_tsv_file_name = con.get('output', 'output_tsv_file_name')
         self._output_hi_conf_tsv_file_name = con.get('output', 'output_hi_conf_tsv_file_name')
 
+
     def _download(self, url, local_file_name):
+
+        print('{} - downloading {} to {}...'.format(str(datetime.now()), url, local_file_name))
+
         r = requests.get(url)
         with open(local_file_name, "wb") as code:
             code.write(r.content)
+            print('{} - downloaded {} to {}\n'.format(str(datetime.now()), url, local_file_name))
 
     def _unzip(self, local_file_name):
-        with gzip.open(local_file_name + '.gz', 'rb') as f_in:
+        zip_file = local_file_name + '.gz'
+
+        print('{} - unzipping and then removing {}...'.format(str(datetime.now()), zip_file))
+
+        with gzip.open(zip_file, 'rb') as f_in:
             with open(local_file_name, 'wb') as f_out:
                 shutil.copyfileobj(f_in, f_out)
 
-        os.remove(local_file_name + '.gz')
+        os.remove(zip_file)
+        print('{} - {} unzipped and removed\n'.format(str(datetime.now()), zip_file))
+
 
     def _download_STRING_files(self):
         """
@@ -459,7 +470,7 @@ class NDExNdexstringloaderLoader(object):
             my_client = ndex2.client.Ndex2(host=self._server, username=self._user, password=self._pass)
             my_client.update_cx_network(network_out, network_id)
 
-        print('{} - network {} updated on server {}...\n\n'.format(str(datetime.now()), network_name, self._server))
+        print('{} - network {} updated on server {}\n\n'.format(str(datetime.now()), network_name, self._server))
         return
 
 
