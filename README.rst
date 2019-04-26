@@ -102,7 +102,7 @@ the :code:`data/` directory of this repository. NOTE: The network needs to be up
 server as defined in **style** :code:`public.ndexbio.org` is NDEx_ production. Also the network needs
 to be visible to the **user**
 
-**Example configuration file**
+**Configuration file**
 
 .. code-block::
 
@@ -110,7 +110,12 @@ to be visible to the **user**
     user = joe123 
     password = somepassword123 
     server = dev.ndexbio.org 
-
+    
+    [prod]
+    user = joe123 _prod
+    password = somepassword123_prod 
+    server = prod.ndexbio.org 
+    
     [network_ids]
     style = 9c23e193-5d73-11e9-8c69-525400c25d22
     hi_confidence_style = 9c100b71-5d73-11e9-8c69-525400c25d22 
