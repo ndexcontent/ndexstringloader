@@ -106,32 +106,32 @@ to be visible to the **user**
 
 .. code-block::
 
-[dev]
-user = joe123 
-password = somepassword123 
-server = dev.ndexbio.org 
+    [dev]
+    user = joe123 
+    password = somepassword123 
+    server = dev.ndexbio.org 
 
-[network_ids]
-style = 9c23e193-5d73-11e9-8c69-525400c25d22
-hi_confidence_style = 9c100b71-5d73-11e9-8c69-525400c25d22 
-full = a57b23c5-65fe-11e9-8c69-525400c25d22 
-hi_confidence = 311b0e5f-6570-11e9-8c69-525400c25d22 
+    [network_ids]
+    style = 9c23e193-5d73-11e9-8c69-525400c25d22
+    hi_confidence_style = 9c100b71-5d73-11e9-8c69-525400c25d22 
+    full = a57b23c5-65fe-11e9-8c69-525400c25d22 
+    hi_confidence = 311b0e5f-6570-11e9-8c69-525400c25d22 
 
-[source]
-ProteinLinksFile = https://stringdb-static.org/download/protein.links.full.v11.0/9606.protein.links.full.v11.0.txt.gz
-NamesFile = https://string-db.org/mapping_files/STRING_display_names/human.name_2_string.tsv.gz
-EntrezIdsFile = https://stringdb-static.org/mapping_files/entrez/human.entrez_2_string.2018.tsv.gz
-UniprotIdsFile = https://string-db.org/mapping_files/uniprot/human.uniprot_2_string.2018.tsv.gz
+    [source]
+    ProteinLinksFile = https://stringdb-static.org/download/protein.links.full.v11.0/9606.protein.links.full.v11.0.txt.gz
+    NamesFile = https://string-db.org/mapping_files/STRING_display_names/human.name_2_string.tsv.gz
+    EntrezIdsFile = https://stringdb-static.org/mapping_files/entrez/human.entrez_2_string.2018.tsv.gz
+    UniprotIdsFile = https://string-db.org/mapping_files/uniprot/human.uniprot_2_string.2018.tsv.gz
 
-[input]
-full_file_name = 9606.protein.links.full.v11.0.txt
-entrez_file = human.entrez_2_string.2018.tsv
-names_file = human.name_2_string.tsv
-uniprot_file = human.uniprot_2_string.2018.tsv
+    [input]
+    full_file_name = 9606.protein.links.full.v11.0.txt
+    entrez_file = human.entrez_2_string.2018.tsv
+    names_file = human.name_2_string.tsv
+    uniprot_file = human.uniprot_2_string.2018.tsv
 
-[output]
-output_tsv_file_name = 9606.protein.links.full.v11.0.tsv.txt
-output_hi_conf_tsv_file_name = 9606.protein.links.full.v11.0.hi_conf.tsv.txt
+    [output]
+    output_tsv_file_name = 9606.protein.links.full.v11.0.tsv.txt
+    output_hi_conf_tsv_file_name = 9606.protein.links.full.v11.0.hi_conf.tsv.txt
 
 
 Needed files
