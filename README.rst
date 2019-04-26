@@ -81,13 +81,13 @@ Output:
 Configuration
 -------------
 
-The **ndexloadstring.py** requires a configuration file in the following format be created.
+The **ndexloadstring.py** requires a configuration file to be created.
 The default path for this configuration is :code:`~/.ndexutils.conf` but can be overridden with
 :code:`--conf` flag.
 
 **Configuration file**
 
-Networks listed in **[network_ids]* section need to be visible to the **user**
+Networks listed in **[network_ids]** section need to be visible to the **user**
 
 .. code-block::
 
