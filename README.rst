@@ -127,7 +127,7 @@ Networks listed in **[network_ids]** section need to be visible to the **user**
 Needed files
 ------------
 
-**TODO:** Add description of needed files
+Load plan is required for running this script.  **string_plan.json**  found at **ndexstringloader/ndexstringloader** can be used for this purpose.
 
 
 Usage
@@ -137,11 +137,15 @@ For information invoke :code:`ndexloadstring.py -h`
 
 **Example usage**
 
-**TODO:** Add information about example usage
+Here is how this command can be run for **dev** and **prod** targets:
 
 .. code-block::
 
-   ndexloadstring.py # TODO Add other needed arguments here
+  .. code-block::
+
+   ndexloadstring.py --loadplan loadplan.json  --profile dev 
+
+   ndexloadstring.py --loadplan loadplan.json  --profile prod 
 
 
 Via Docker
