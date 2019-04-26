@@ -141,8 +141,6 @@ Here is how this command can be run for **dev** and **prod** targets:
 
 .. code-block::
 
-  .. code-block::
-
    ndexloadstring.py --loadplan loadplan.json  --profile dev 
 
    ndexloadstring.py --loadplan loadplan.json  --profile prod 
