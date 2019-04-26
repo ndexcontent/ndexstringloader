@@ -85,24 +85,9 @@ The **ndexloadstring.py** requires a configuration file in the following format 
 The default path for this configuration is :code:`~/.ndexutils.conf` but can be overridden with
 :code:`--conf` flag.
 
-**Format of configuration file**
-
-.. code-block::
-
-    [<value in --profile (default ndexstringloader)>]
-
-    user = <NDEx username>
-    password = <NDEx password>
-    server = <NDEx server(omit http) ie public.ndexbio.org>
-    style = <NDEx UUID of network to use for styling networks created>
-
-
-The NDEx UUID needed for **style** can be obtained by uploading the :code:`style.cx` file found under
-the :code:`data/` directory of this repository. NOTE: The network needs to be uploaded to the same
-server as defined in **style** :code:`public.ndexbio.org` is NDEx_ production. Also the network needs
-to be visible to the **user**
-
 **Configuration file**
+
+Networks listed in **[network_ids]* section need to be visible to the **user**
 
 .. code-block::
 
