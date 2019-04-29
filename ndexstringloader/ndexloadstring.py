@@ -80,6 +80,8 @@ def _parse_arguments(desc, args):
                         version=('%(prog)s ' +
                                  ndexstringloader.__version__))
 
+    parser.add_argument('--stringversion', help='Version of STRING DB', required=True)
+
     return parser.parse_args(args)
 
 
@@ -119,6 +121,8 @@ class NDExNdexstringloaderLoader(object):
         self._profile = args.profile
         self._load_plan = args.loadplan
 
+        self._string_version = args.stringversion
+
     def _parse_config(self):
         """
         Parses config
@@ -151,24 +155,24 @@ class NDExNdexstringloaderLoader(object):
 
     def _download(self, url, local_file_name):
 
-        print('{} - downloading {} to {}...'.format(str(datetime.now()), url, local_file_name))
+        print('{} - downloading {} to {}...'.format(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")), url, local_file_name))
 
         r = requests.get(url)
         with open(local_file_name, "wb") as code:
             code.write(r.content)
-            print('{} - downloaded {} to {}\n'.format(str(datetime.now()), url, local_file_name))
+            print('{} - downloaded {} to {}\n'.format(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")), url, local_file_name))
 
     def _unzip(self, local_file_name):
         zip_file = local_file_name + '.gz'
 
-        print('{} - unzipping and then removing {}...'.format(str(datetime.now()), zip_file))
+        print('{} - unzipping and then removing {}...'.format(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")), zip_file))
 
         with gzip.open(zip_file, 'rb') as f_in:
             with open(local_file_name, 'wb') as f_out:
                 shutil.copyfileobj(f_in, f_out)
 
         os.remove(zip_file)
-        print('{} - {} unzipped and removed\n'.format(str(datetime.now()), zip_file))
+        print('{} - {} unzipped and removed\n'.format(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")), zip_file))
 
 
     def _download_STRING_files(self):
@@ -451,26 +455,28 @@ class NDExNdexstringloaderLoader(object):
                                         [
                                             {'n': 'name', 'v': network_name},
                                             {'n': 'description', 'v': template_network.get_network_attribute('description')['v']},
-                                            {'n': 'version', 'v': template_network.get_network_attribute('version')['v']},
+                                            {'n': 'version', 'v': self._string_version},
                                             {'n': 'organism', 'v': 'Human, 9606, Homo sapiens'},
                                             {'n': 'networkType', 'v': 'Protein-Protein Interaction'},
                                             {'n': 'reference', 'v': template_network.get_network_attribute('reference')['v']},
                                         ])
 
-        print('{} - CX file for network {} generated\n'.format(str(datetime.now()), network_name))
+        print('{} - CX file for network {} generated\n'.format(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")), network_name))
         return new_cx_file
 
 
     def _update_network_on_server(self, new_cx_file, network_name, network_id):
 
-        print('{} - updating network {} on server {} for user {}...'.format(str(datetime.now()), network_name, self._server, self._user))
+        print('{} - updating network {} on server {} for user {}...'.format(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+                                                                            network_name, self._server, self._user))
 
         with open(new_cx_file, 'br') as network_out:
 
             my_client = ndex2.client.Ndex2(host=self._server, username=self._user, password=self._pass)
             my_client.update_cx_network(network_out, network_id)
 
-        print('{} - network {} updated on server {} for user {}\n'.format(str(datetime.now()), network_name, self._server, self._user))
+        print('{} - network {} updated on server {} for user {}\n'.format(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+                                                                          network_name, self._server, self._user))
         return
 
 
@@ -536,6 +542,7 @@ def main(args):
         return 0
 
     except Exception as e:
+        print('\n   {} {}\n'.format(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")), e))
         logger.exception('Caught exception')
         return 2
     finally:
