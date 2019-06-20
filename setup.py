@@ -46,6 +46,8 @@ setup(
     keywords='ndexstringloader',
     name='ndexstringloader',
     packages=find_packages(include=['ndexstringloader']),
+    package_dir={'ndexstringloader': 'ndexstringloader'},
+    package_data={'ndexstringloader': ['string_plan.json']},
     scripts=[ 'ndexstringloader/ndexloadstring.py'],
     setup_requires=setup_requirements,
     test_suite='tests',
