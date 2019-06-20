@@ -33,6 +33,24 @@ TSV2NICECXMODULE = 'ndexutil.tsv.tsv2nicecx2'
 LOG_FORMAT = "%(asctime)-15s %(levelname)s %(relativeCreated)dms " \
              "%(filename)s::%(funcName)s():%(lineno)d %(message)s"
 
+
+STRING_LOAD_PLAN = 'string_plan.json'
+
+def get_package_dir():
+    """
+    Gets directory where package is installed
+    :return:
+    """
+    return os.path.dirname(ndexstringloader.__file__)
+
+def get_load_plan():
+    """
+    Gets the load plan stored with this package
+    :return: path to file
+    :rtype: string
+    """
+    return os.path.join(get_package_dir(), STRING_LOAD_PLAN)
+
 def _parse_arguments(desc, args):
     """
     Parses command line arguments
@@ -45,13 +63,13 @@ def _parse_arguments(desc, args):
                                      formatter_class=help_fm)
 
     parser.add_argument('--profile', help='Profile in configuration '
-                                          'file to use to load '
+                                          'file to load '
                                           'NDEx credentials which means'
                                           'configuration under [XXX] will be'
                                           'used '
                                           '(default '
                                           'ndexstringloader)',
-                        default='ndexstringloader')
+                        required=True)
     parser.add_argument('--logconf', default=None,
                         help='Path to python logging configuration file in '
                              'this format: https://docs.python.org/3/library/logging.config.html#logging-config-fileformat'
@@ -61,7 +79,7 @@ def _parse_arguments(desc, args):
     parser.add_argument('--conf', help='Configuration file to load '
                                        '(default ~/' +
                                        NDExUtilConfig.CONFIG_FILE)
-    parser.add_argument('--loadplan', help='Load plan json file', required=True)
+    parser.add_argument('--loadplan', help='Load plan json file', default=get_load_plan())
     parser.add_argument('--verbose', '-v', action='count', default=0,
                         help='Increases verbosity of logger to standard '
                              'error for log messages in this module and'
