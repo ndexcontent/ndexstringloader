@@ -9,7 +9,6 @@ import ndexstringloader
 
 import csv
 import pandas as pd
-import json
 
 from datetime import datetime
 
@@ -18,14 +17,9 @@ import shutil
 
 import os
 
-import ndexutil.tsv.tsv2nicecx2 as t2n
 
 from ndexutil.tsv.streamtsvloader import StreamTSVLoader
 
-
-
-import configparser
-import urllib
 
 import requests
 
@@ -161,6 +155,7 @@ class NDExNdexstringloaderLoader(object):
         with open(local_file_name, "wb") as code:
             code.write(r.content)
             print('{} - downloaded {} to {}\n'.format(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")), url, local_file_name))
+
 
     def _unzip(self, local_file_name):
         zip_file = local_file_name + '.gz'
@@ -399,8 +394,10 @@ class NDExNdexstringloaderLoader(object):
         #    if value['display_name'] is None or value['alias'] is None or value['represents'] is None:
         #        print('For {} values are {}'.format(key, value))
 
+
         # generate output tsv files: one general and one high confidence
         print('Creating target {} and {} files...'.format(self._output_tsv_file_name, self._output_hi_conf_tsv_file_name))
+
 
         with open(self._output_tsv_file_name, 'w') as o_f, open(self._output_hi_conf_tsv_file_name, 'w') as o_hi_conf_f:
 
@@ -421,7 +418,10 @@ class NDExNdexstringloaderLoader(object):
                     name_rep_alias_1 = self._get_name_rep_alias(protein1, ensembl_ids)
                     name_rep_alias_2 = self._get_name_rep_alias(protein2, ensembl_ids)
 
-                    full_tsv_string = name_rep_alias_1 + '\t' + name_rep_alias_2 + '\t' + '\t'.join(x for x in columns_in_row[2:])
+                    full_tsv_string = name_rep_alias_1 + '\t' + name_rep_alias_2 + '\t' + \
+                                      '\t'.join(x for x in columns_in_row[2:])
+
+
 
                     o_f.write(full_tsv_string)
                     row_count = row_count + 1
@@ -431,8 +431,8 @@ class NDExNdexstringloaderLoader(object):
                         o_hi_conf_f.write(full_tsv_string)
                         row_count_hi_conf = row_count_hi_conf + 1
 
-        print('Created {} ({:,} lines) and {} ({:,} lines) files\n'.\
-              format(self._output_tsv_file_name, row_count, self._output_hi_conf_tsv_file_name, row_count_hi_conf))
+            print('Created {} ({:,} lines) and {} ({:,} lines) files\n'.\
+                format(self._output_tsv_file_name, row_count, self._output_hi_conf_tsv_file_name, row_count_hi_conf))
 
         return 0
 
@@ -452,14 +452,16 @@ class NDExNdexstringloaderLoader(object):
                 loader = StreamTSVLoader(self._load_plan, template_network)
 
                 loader.write_cx_network(tsvfile, out,
-                                        [
-                                            {'n': 'name', 'v': network_name},
-                                            {'n': 'description', 'v': template_network.get_network_attribute('description')['v']},
-                                            {'n': 'version', 'v': self._string_version},
-                                            {'n': 'organism', 'v': 'Human, 9606, Homo sapiens'},
-                                            {'n': 'networkType', 'v': 'Protein-Protein Interaction'},
-                                            {'n': 'reference', 'v': template_network.get_network_attribute('reference')['v']},
-                                        ])
+                    [
+                        {'n': 'name', 'v': network_name},
+                        {'n': 'description', 'v': template_network.get_network_attribute('description')['v']},
+                        {'n': 'rights', 'v': template_network.get_network_attribute('rights')['v']},
+                        {'n': 'rightsHolder', 'v': template_network.get_network_attribute('rightsHolder')['v']},
+                        {'n': 'version', 'v': self._string_version},
+                        {'n': 'organism', 'v': template_network.get_network_attribute('organism')['v']},
+                        {'n': 'networkType', 'v': template_network.get_network_attribute('networkType')['v']},
+                        {'n': 'reference', 'v': template_network.get_network_attribute('reference')['v']},
+                    ])
 
         print('{} - CX file for network {} generated\n'.format(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")), network_name))
         return new_cx_file
@@ -473,9 +475,13 @@ class NDExNdexstringloaderLoader(object):
         with open(new_cx_file, 'br') as network_out:
 
             my_client = ndex2.client.Ndex2(host=self._server, username=self._user, password=self._pass)
-            my_client.update_cx_network(network_out, network_id)
 
-        print('{} - network {} updated on server {} for user {}\n'.format(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+            try:
+                my_client.update_cx_network(network_out, network_id)
+            except Exception as e:
+                print('{} - server returned error: {}\n'.format(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")), e))
+            else:
+                print('{} - network {} updated on server {} for user {}\n'.format(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
                                                                           network_name, self._server, self._user))
         return
 
@@ -500,7 +506,6 @@ class NDExNdexstringloaderLoader(object):
         self._update_network_on_server(cx_file_name, network_name, network_id)
 
 
-
 def main(args):
     """
     Main entry point for program
@@ -513,12 +518,12 @@ def main(args):
     Loads NDEx STRING Content Loader data into NDEx (http://ndexbio.org).
 
     To connect to NDEx server a configuration file must be passed
-    into --conf parameter. If --conf is unset the configuration
-    the path ~/{confname} is examined.
+    into --conf parameter. If --conf is unset, the configuration
+    ~/{confname} is examined.
 
     The configuration file should be formatted as follows:
 
-    [<value in --profile (default ncipid)>]
+    [<value in --profile (default dev)>]
 
     {user} = <NDEx username>
     {password} = <NDEx password>

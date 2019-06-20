@@ -13,12 +13,18 @@
         "rep_column": "represents1",
         "node_name_column": "name1",
         "property_columns":
-           [{
-                 "column_name": "alias1",
-                 "attribute_name": "alias",
-                 "data_type": "list_of_string",
-                 "delimiter" : "|"
-             }]
+           [
+               {
+                  "attribute_name": "type",
+                  "default_value": "protein"
+               },
+               {
+                   "column_name": "alias1",
+                   "attribute_name": "alias",
+                   "data_type": "list_of_string",
+                   "delimiter" : "|"
+               }
+           ]
     },
 
     "target_plan":
@@ -27,12 +33,18 @@
         "rep_column": "represents2",
         "node_name_column": "name2",
         "property_columns":
-           [{
+           [
+               {
+                  "attribute_name": "type",
+                  "default_value": "protein"
+               },
+               {
                  "column_name": "alias2",
                  "attribute_name": "alias",
                  "data_type": "list_of_string",
                  "delimiter" : "|"
-             }]
+             }
+           ]
     },
 
     "edge_plan":

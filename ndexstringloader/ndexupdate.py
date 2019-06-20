@@ -2,39 +2,16 @@
 
 import argparse
 import sys
-import logging
-from logging import config
+
 from ndexutil.config import NDExUtilConfig
 import ndexstringloader
 
-import csv
-import pandas as pd
-import json
-
 from datetime import datetime
-
-import gzip
-import shutil
-
-import os
-
-import ndexutil.tsv.tsv2nicecx2 as t2n
-
-from ndexutil.tsv.streamtsvloader import StreamTSVLoader
-
-
-
-import configparser
-import urllib
-
-import requests
 
 import ndex2
 
 
-logger = logging.getLogger(__name__)
 
-TSV2NICECXMODULE = 'ndexutil.tsv.tsv2nicecx2'
 
 LOG_FORMAT = "%(asctime)-15s %(levelname)s %(relativeCreated)dms " \
              "%(filename)s::%(funcName)s():%(lineno)d %(message)s"
@@ -51,68 +28,22 @@ def _parse_arguments(desc, args):
                                      formatter_class=help_fm)
 
     parser.add_argument('--profile', help='Profile in configuration '
-                                          'file to use to load '
+                                          'file that specifies user name, password, server network_id to be updated '
+                                          ' and cx file name whose content will udate network with network_id '
                                           'NDEx credentials which means'
                                           'configuration under [XXX] will be'
-                                          'used '
-                                          '(default '
-                                          'ndexstringloader)',
-                        default='ndexstringloader')
-    parser.add_argument('--logconf', default=None,
-                        help='Path to python logging configuration file in '
-                             'this format: https://docs.python.org/3/library/logging.config.html#logging-config-fileformat'
-                             'Setting this overrides -v parameter which uses '
-                             ' default logger. (default None)')
+                                          'used ', required=True)
 
     parser.add_argument('--conf', help='Configuration file to load '
                                        '(default ~/' +
                                        NDExUtilConfig.CONFIG_FILE)
-    parser.add_argument('--verbose', '-v', action='count', default=0,
-                        help='Increases verbosity of logger to standard '
-                             'error for log messages in this module and'
-                             'in ' + TSV2NICECXMODULE + '. Messages are '
-                             'output at these python logging levels '
-                             '-v = ERROR, -vv = WARNING, -vvv = INFO, '
-                             '-vvvv = DEBUG, -vvvvv = NOTSET (default no '
-                             'logging)')
-    parser.add_argument('--version', action='version',
-                        version=('%(prog)s ' +
-                                 ndexstringloader.__version__))
-
-    parser.add_argument('--networkid', help='UUID of network on the server to update', required=True)
-
-    parser.add_argument('--cx', help='CX file to use for updating netwoprk on server', required=True)
 
     return parser.parse_args(args)
 
 
-def _setup_logging(args):
+class NDExUpdateNetwork(object):
     """
-    Sets up logging based on parsed command line arguments.
-    If args.logconf is set use that configuration otherwise look
-    at args.verbose and set logging for this module and the one
-    in ndexutil specified by TSV2NICECXMODULE constant
-    :param args: parsed command line arguments from argparse
-    :raises AttributeError: If args is None or args.logconf is None
-    :return: None
-    """
-
-    if args.logconf is None:
-        level = (50 - (10 * args.verbose))
-        logging.basicConfig(format=LOG_FORMAT,
-                            level=level)
-        logging.getLogger(TSV2NICECXMODULE).setLevel(level)
-        logger.setLevel(level)
-        return
-
-    # logconf was set use that file
-    logging.config.fileConfig(args.logconf,
-                              disable_existing_loggers=False)
-
-
-class NDExNdexstringloaderLoader(object):
-    """
-    Class to load content
+    Class to update content
     """
     def __init__(self, args):
         """
@@ -121,8 +52,9 @@ class NDExNdexstringloaderLoader(object):
         self._conf_file = args.conf
         self._profile = args.profile
 
-        self._network_id = args.networkid
-        self._update_cx_file_name = args.cx
+        #self._network_id = args.networkid
+        #self._update_cx_file_name = args.cx
+
 
     def _parse_config(self):
         """
@@ -131,9 +63,42 @@ class NDExNdexstringloaderLoader(object):
         """
         ncon = NDExUtilConfig(conf_file=self._conf_file)
         con = ncon.get_config()
+
         self._user = con.get(self._profile, NDExUtilConfig.USER)
         self._pass = con.get(self._profile, NDExUtilConfig.PASSWORD)
         self._server = con.get(self._profile, NDExUtilConfig.SERVER)
+        self._network_id = con.get(self._profile, 'network_id')
+        self._update_cx_file_name = con.get(self._profile, 'update_cx_file_name')
+
+        ret_value = 0
+        if not self._user:
+            print('user is not specified in configuration file')
+            ret_value = 2
+
+        if not self._pass:
+            print('password is not specified in configuration file')
+            ret_value = 2
+
+        if not self._server:
+            print('server is not specified in configuration file')
+            ret_value = 2
+
+        if not self._network_id:
+            print('network_id is not specified in configuration file')
+            ret_value = 2
+
+        if not self._update_cx_file_name:
+            print('update_cx_file_name is not specified in configuration file')
+            ret_value = 2
+
+        return ret_value
+
+        #if not self._network_id:
+        #    self._network_id = con.get(self._profile, 'network_id')
+
+        #if not self._update_cx_file_name:
+        #    self._update_cx_file_name = con.get(self._profile, 'update_cx_file_name')
+
 
 
     def _update_network_on_server(self):
@@ -145,24 +110,28 @@ class NDExNdexstringloaderLoader(object):
         with open(self._update_cx_file_name, 'br') as network_out:
 
             my_client = ndex2.client.Ndex2(host=self._server, username=self._user, password=self._pass)
-            my_client.update_cx_network(network_out, self._network_id)
 
-        print('{} - updated network {} from cx file {} on server {} for user {}'
-              .format(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
-                  self._network_id, self._update_cx_file_name, self._server, self._user))
+            try:
+                my_client.update_cx_network(network_out, self._network_id)
+            except Exception as e:
+                print('{} - server returned error: {}\n'.format(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")), e))
+                return 2
+            else:
+                print('{} - updated network {} from cx file {} on server {} for user {}'
+                      .format(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+                              self._network_id, self._update_cx_file_name, self._server, self._user))
 
-        return
+        return 0
+
+
 
     def run(self):
-        """
-        Runs content loading for NDEx STRING Content Loader
-        :param theargs:
-        :return:
-        """
-        self._parse_config()
-        self._update_network_on_server()
+        status_code = self._parse_config()
 
+        if status_code == 0:
+            status_code = self._update_network_on_server()
 
+        return status_code
 
 
 
@@ -183,7 +152,7 @@ def main(args):
 
     The configuration file should be formatted as follows:
 
-    [<value in --profile (default ncipid)>]
+    [<value in --profile (default ndex_update)>]
 
     {user} = <NDEx username>
     {password} = <NDEx password>
@@ -200,17 +169,16 @@ def main(args):
     theargs.version = ndexstringloader.__version__
 
     try:
-        _setup_logging(theargs)
-        loader = NDExNdexstringloaderLoader(theargs)
-        loader.run()
+        updater = NDExUpdateNetwork(theargs)
+        updater.run()
         return 0
 
     except Exception as e:
         print('\n   {} {}\n'.format(str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")), e))
-        logger.exception('Caught exception')
         return 2
+
     finally:
-        logging.shutdown()
+        pass
 
 
 if __name__ == '__main__':  # pragma: no cover
