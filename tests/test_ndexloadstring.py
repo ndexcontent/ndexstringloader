@@ -31,14 +31,13 @@ class TestNdexstringloader(unittest.TestCase):
         self.assertEqual(res.conf, None)
 
         someargs = ['-vv','--conf', 'foo', '--logconf', 'hi',
-                    '--profile', 'myprofy']
+                    '--profile', 'myprofy', '--stringversion', '1.0']
         res = ndexloadstring._parse_arguments('hi', someargs)
 
         self.assertEqual(res.profile, 'myprofy')
         self.assertEqual(res.verbose, 2)
         self.assertEqual(res.logconf, 'hi')
         self.assertEqual(res.conf, 'foo')
-
 
     def test_setup_logging(self):
         """ Tests logging setup"""
@@ -90,7 +89,7 @@ format=%(asctime)s %(name)-12s %(levelname)-8s %(message)s""")
     def test_main(self):
         """Tests main function"""
 
-        # try where loading config is successful
+        # try where loading config is successful but things fail
         try:
             temp_dir = tempfile.mkdtemp()
             confile = os.path.join(temp_dir, 'some.conf')
@@ -104,6 +103,6 @@ format=%(asctime)s %(name)-12s %(levelname)-8s %(message)s""")
             res = ndexloadstring.main(['myprog.py', '--conf',
                                                      confile, '--profile',
                                                      'hi'])
-            self.assertEqual(res, 0)
+            self.assertEqual(2, res)
         finally:
             shutil.rmtree(temp_dir)

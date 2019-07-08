@@ -18,8 +18,8 @@ with open('README.rst') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-requirements = [ 'ndex2==3.0.0a1',
-                 'ndexutil==0.2.0a1']
+requirements = [ 'ndex2',
+                 'ndexutil']
 
 setup_requirements = [ ]
 

@@ -6,23 +6,14 @@ import logging
 from logging import config
 from ndexutil.config import NDExUtilConfig
 import ndexstringloader
-
 import csv
 import pandas as pd
-
 from datetime import datetime
-
 import gzip
 import shutil
-
 import os
-
-
 from ndexutil.tsv.streamtsvloader import StreamTSVLoader
-
-
 import requests
-
 import ndex2
 
 
@@ -69,10 +60,11 @@ def _parse_arguments(desc, args):
                                           'used '
                                           '(default '
                                           'ndexstringloader)',
-                        required=True)
+                        default='ndexstringloader')
     parser.add_argument('--logconf', default=None,
                         help='Path to python logging configuration file in '
-                             'this format: https://docs.python.org/3/library/logging.config.html#logging-config-fileformat'
+                             'this format: https://docs.python.org/3/library/'
+                             'logging.config.html#logging-config-fileformat'
                              'Setting this overrides -v parameter which uses '
                              ' default logger. (default None)')
 
@@ -92,7 +84,8 @@ def _parse_arguments(desc, args):
                         version=('%(prog)s ' +
                                  ndexstringloader.__version__))
 
-    parser.add_argument('--stringversion', help='Version of STRING DB', required=True)
+    parser.add_argument('--stringversion', help='Version of STRING DB (default 11.0)',
+                        default='11.0')
 
     return parser.parse_args(args)
 
