@@ -23,20 +23,21 @@ class TestNdexstringloader(unittest.TestCase):
 
     def test_parse_arguments(self):
         """Tests parse arguments"""
-        res = ndexloadstring._parse_arguments('hi', [])
+        res = ndexloadstring._parse_arguments('description', [])
 
         self.assertEqual(res.profile, 'ndexstringloader')
         self.assertEqual(res.verbose, 0)
         self.assertEqual(res.logconf, None)
         self.assertEqual(res.conf, None)
 
-        someargs = ['-vv','--conf', 'foo', '--logconf', 'hi',
+        someargs = ['-vv', '--conf', 'foo', '--logconf', 'hi',
                     '--profile', 'myprofy', '--stringversion', '1.0']
-        res = ndexloadstring._parse_arguments('hi', someargs)
+        res = ndexloadstring._parse_arguments('description', someargs)
 
         self.assertEqual(res.profile, 'myprofy')
         self.assertEqual(res.verbose, 2)
         self.assertEqual(res.logconf, 'hi')
+        self.assertEqual('1.0', res.stringversion)
         self.assertEqual(res.conf, 'foo')
 
     def test_setup_logging(self):
