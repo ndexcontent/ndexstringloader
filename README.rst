@@ -7,7 +7,7 @@ NDEx STRING Content Loader
         :target: https://pypi.python.org/pypi/ndexstringloader
 
 .. image:: https://img.shields.io/travis/vrynkov/ndexstringloader.svg
-        :target: https://travis-ci.org/vrynkov/ndexstringloader
+        :target: https://travis-ci.org/ndexcontent/ndexstringloader
 
 .. image:: https://coveralls.io/repos/github/ndexcontent/ndexstringloader/badge.svg?branch=master
         :target: https://coveralls.io/github/ndexcontent/ndexstringloader?branch=master
