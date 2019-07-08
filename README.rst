@@ -9,6 +9,9 @@ NDEx STRING Content Loader
 .. image:: https://img.shields.io/travis/vrynkov/ndexstringloader.svg
         :target: https://travis-ci.org/vrynkov/ndexstringloader
 
+.. image:: https://coveralls.io/repos/github/ndexcontent/ndexstringloader/badge.svg?branch=master
+        :target: https://coveralls.io/github/ndexcontent/ndexstringloader?branch=master
+
 .. image:: https://readthedocs.org/projects/ndexstringloader/badge/?version=latest
         :target: https://ndexstringloader.readthedocs.io/en/latest/?badge=latest
         :alt: Documentation Status
