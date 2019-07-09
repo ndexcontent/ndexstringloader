@@ -28,6 +28,7 @@ LOG_FORMAT = "%(asctime)-15s %(levelname)s %(relativeCreated)dms " \
 
 
 STRING_LOAD_PLAN = 'string_plan.json'
+DEFAULT_ICONURL = 'https://home.ndexbio.org/img/STRING-logo.png'
 
 def get_package_dir():
     """
@@ -88,6 +89,9 @@ def _parse_arguments(desc, args):
     parser.add_argument('--loadplan', help='Load plan json file', default=get_load_plan())
     parser.add_argument('--style', help='Path to NDEx CX file to use for styling'
                         'networks', default=get_style())
+    parser.add_argument('--iconurl', help='URL for __iconurl parameter '
+                                          '(default ' + DEFAULT_ICONURL + ')',
+                        default=DEFAULT_ICONURL)
     parser.add_argument('--cutoffscore', help='Sets cutoff score (default 0.7)',
                         type=float, default=0.7)
     parser.add_argument('--verbose', '-v', action='count', default=0,
@@ -136,7 +140,7 @@ def _setup_logging(args):
                               disable_existing_loggers=False)
 
 
-class NDExNdexstringloaderLoader(object):
+class NDExLoader(object):
     """
     Class to load content
     """
@@ -151,6 +155,7 @@ class NDExNdexstringloaderLoader(object):
         self._args = args
         self._datadir = datadir
         self._cutoffscore = args.cutoffscore
+        self._iconurl = args.iconurl
         self._template = None
 
     def _parse_config(self):
@@ -500,8 +505,9 @@ class NDExNdexstringloaderLoader(object):
                         {'n': 'rightsHolder', 'v': self._template.get_network_attribute('rightsHolder')['v']},
                         {'n': 'version', 'v': self._string_version},
                         {'n': 'organism', 'v': self._template.get_network_attribute('organism')['v']},
-                        {'n': 'networkType', 'v': self._template.get_network_attribute('networkType')['v']},
+                        {'n': 'networkType', 'v': ['interactome', 'ppi'], 'd': 'list_of_string'},
                         {'n': 'reference', 'v': self._template.get_network_attribute('reference')['v']},
+                        {'n': '__iconurl', 'v': self._iconurl}
                     ])
 
         logger.debug('CX file for network {} generated\n'.format(network_name))
@@ -594,7 +600,7 @@ def main(args):
 
     try:
         _setup_logging(theargs)
-        loader = NDExNdexstringloaderLoader(theargs, os.path.abspath(theargs.datadir))
+        loader = NDExLoader(theargs, os.path.abspath(theargs.datadir))
         loader.run()
         loader.load_to_NDEx()
         return 0

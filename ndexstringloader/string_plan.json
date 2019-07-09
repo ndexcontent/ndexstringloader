@@ -2,10 +2,8 @@
     "context":
     {
         "ncbigene": "http://identifiers.org/ncbigene/",
-        "pubmed":  "http://identifiers.org/pubmed/",
         "uniprot": "http://identifiers.org/uniprot/",
-        "ensembl": "http://identifiers.org/ensembl/",
-        "hgnc": "http://identifiers.org/hgnc.symbol/"
+        "ensembl": "http://identifiers.org/ensembl/"
     },
     "source_plan":
     {
