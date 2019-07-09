@@ -23,7 +23,7 @@ class TestNdexstringloader(unittest.TestCase):
 
     def test_parse_arguments(self):
         """Tests parse arguments"""
-        res = ndexloadstring._parse_arguments('description', [])
+        res = ndexloadstring._parse_arguments('description', ['datadir'])
 
         self.assertEqual(res.profile, 'ndexstringloader')
         self.assertEqual(res.verbose, 0)
@@ -31,7 +31,8 @@ class TestNdexstringloader(unittest.TestCase):
         self.assertEqual(res.conf, None)
 
         someargs = ['-vv', '--conf', 'foo', '--logconf', 'hi',
-                    '--profile', 'myprofy', '--stringversion', '1.0']
+                    '--profile', 'myprofy', '--stringversion', '1.0',
+                    'datadir']
         res = ndexloadstring._parse_arguments('description', someargs)
 
         self.assertEqual(res.profile, 'myprofy')
@@ -49,7 +50,7 @@ class TestNdexstringloader(unittest.TestCase):
             pass
 
         # args.logconf is None
-        res = ndexloadstring._parse_arguments('hi', [])
+        res = ndexloadstring._parse_arguments('hi', ['datadir'])
         ndexloadstring._setup_logging(res)
 
         # args.logconf set to a file
@@ -81,7 +82,8 @@ args=(sys.stderr,)
 format=%(asctime)s %(name)-12s %(levelname)-8s %(message)s""")
 
             res = ndexloadstring._parse_arguments('hi', ['--logconf',
-                                                                       logfile])
+                                                                       logfile,
+                                                         'datadir'])
             ndexloadstring._setup_logging(res)
 
         finally:
@@ -103,7 +105,7 @@ format=%(asctime)s %(name)-12s %(levelname)-8s %(message)s""")
                                                      server=NDExUtilConfig.SERVER))
             res = ndexloadstring.main(['myprog.py', '--conf',
                                                      confile, '--profile',
-                                                     'hi'])
+                                                     'hi', 'datadir'])
             self.assertEqual(2, res)
         finally:
             shutil.rmtree(temp_dir)
