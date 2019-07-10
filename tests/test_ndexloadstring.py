@@ -9,7 +9,21 @@ import shutil
 
 import unittest
 from ndexutil.config import NDExUtilConfig
-from ndexstringloader import ndexloadstring
+from ndexstringloader.ndexloadstring import NDExSTRINGLoader
+
+
+class Param(object):
+    """
+    Dummy object
+    """
+    pass
+
+
+class dotdict(dict):
+    """dot.notation access to dictionary attributes"""
+    __getattr__ = dict.get
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
 
 
 class TestNdexstringloader(unittest.TestCase):
@@ -18,94 +32,158 @@ class TestNdexstringloader(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures, if any."""
 
+        self._args = {
+            'conf': None,
+            'profile': None,
+            'loadplan': None,
+            'stringversion': None,
+            'args': None,
+            'datadir': None,
+            'cutoffscore': 0.7,
+            'iconurl': None
+        }
+
+        self._args = dotdict(self._args)
+
+
+
     def tearDown(self):
         """Tear down test fixtures, if any."""
 
-    def test_parse_arguments(self):
-        """Tests parse arguments"""
-        res = ndexloadstring._parse_arguments('description', ['datadir'])
+    @unittest.skip("skip it for now - will add later")
+    def test_parse_config(self):
 
-        self.assertEqual(res.profile, 'ndexstringloader')
-        self.assertEqual(res.verbose, 0)
-        self.assertEqual(res.logconf, None)
-        self.assertEqual(res.conf, None)
-
-        someargs = ['-vv', '--conf', 'foo', '--logconf', 'hi',
-                    '--profile', 'myprofy', '--stringversion', '1.0',
-                    'datadir']
-        res = ndexloadstring._parse_arguments('description', someargs)
-
-        self.assertEqual(res.profile, 'myprofy')
-        self.assertEqual(res.verbose, 2)
-        self.assertEqual(res.logconf, 'hi')
-        self.assertEqual('1.0', res.stringversion)
-        self.assertEqual(res.conf, 'foo')
-
-    def test_setup_logging(self):
-        """ Tests logging setup"""
+        temp_dir = tempfile.mkdtemp()
         try:
-            ndexloadstring._setup_logging(None)
-            self.fail('Expected AttributeError')
-        except AttributeError:
-            pass
+            p = Param()
+            p.profile = 'test_conf_section'
+            conf = os.path.join(temp_dir, 'temp.conf')
+            p.conf = conf
 
-        # args.logconf is None
-        res = ndexloadstring._parse_arguments('hi', ['datadir'])
-        ndexloadstring._setup_logging(res)
+            with open(conf, 'w') as f:
+                f.write('[' + p.profile + ']' + '\n')
+                f.write(NDExUtilConfig.USER + ' = aaa\n')
+                f.write(NDExUtilConfig.PASSWORD + ' = bbb\n')
+                f.write(NDExUtilConfig.SERVER + ' = dev.ndexbio.org\n')
+                f.flush()
 
-        # args.logconf set to a file
-        try:
-            temp_dir = tempfile.mkdtemp()
-
-            logfile = os.path.join(temp_dir, 'log.conf')
-            with open(logfile, 'w') as f:
-                f.write("""[loggers]
-keys=root
-
-[handlers]
-keys=stream_handler
-
-[formatters]
-keys=formatter
-
-[logger_root]
-level=DEBUG
-handlers=stream_handler
-
-[handler_stream_handler]
-class=StreamHandler
-level=DEBUG
-formatter=formatter
-args=(sys.stderr,)
-
-[formatter_formatter]
-format=%(asctime)s %(name)-12s %(levelname)-8s %(message)s""")
-
-            res = ndexloadstring._parse_arguments('hi', ['--logconf',
-                                                                       logfile,
-                                                         'datadir'])
-            ndexloadstring._setup_logging(res)
-
+            loader = NDExSTRINGLoader(p)
+            loader._parse_config()
+            self.assertEqual('aaa', loader._user)
+            self.assertEqual('bbb', loader._pass)
+            self.assertEqual('dev.ndexbio.org', loader._server)
         finally:
             shutil.rmtree(temp_dir)
 
-    def test_main(self):
-        """Tests main function"""
 
-        # try where loading config is successful but things fail
+
+    def test_remove_duplicate_edges(self):
+
+        # some duplicate records in the same format as in STRING 9606.protein.links.full.v11.0.txt
+        duplicate_records = [
+            '9606.ENSP00000261819 9606.ENSP00000353549 0 0 0 0 0 102 90 987 260 900 0 754 622 999',
+            '9606.ENSP00000238651 9606.ENSP00000364486 0 0 0 0 0 0 45 0 0 800 0 0 0 800',
+            '9606.ENSP00000268876 9606.ENSP00000216181 0 0 0 0 0 0 73 0 381 0 0 422 203 700',
+            '9606.ENSP00000242462 9606.ENSP00000276480 0 0 0 0 0 0 0 0 0 0 0 0 401 400',
+            '9606.ENSP00000364486 9606.ENSP00000238651 0 0 0 0 0 0 45 0 0 800 0 0 0 800',
+            '9606.ENSP00000353549 9606.ENSP00000261819 0 0 0 0 0 102 90 987 260 900 0 754 622 999',
+            '9606.ENSP00000276480 9606.ENSP00000242462 0 0 0 0 0 0 0 0 0 0 0 0 401 400',
+            '9606.ENSP00000216181 9606.ENSP00000268876 0 0 0 0 0 0 73 0 381 0 0 422 203 700'
+        ]
+        ensembl_ids = {
+            '9606.ENSP00000216181': {
+                'display_name': 'MYH9',
+                'alias': 'ncbigene:4627|ensembl:ENSP00000216181',
+                'represents': 'uniprot:P3557'
+            },
+            '9606.ENSP00000238651': {
+                'display_name': 'ACOT2',
+                'alias': 'ncbigene:10965|ensembl:ENSP00000238651',
+                'represents': 'uniprot:P49753'
+            },
+            '9606.ENSP00000242462': {
+                'display_name': 'NEUROG3',
+                'alias': 'ncbigene:50674|ensembl:ENSP00000242462',
+                'represents': 'uniprot:Q9Y4Z2'
+            },
+            '9606.ENSP00000261819': {
+                'display_name': 'ANAPC5',
+                'alias': 'ncbigene:51433|ensembl:ENSP00000261819',
+                'represents': 'uniprot:Q9UJX4'
+            },
+            '9606.ENSP00000268876': {
+                'display_name': 'UNC45B',
+                'alias': 'ncbigene:146862|ensembl:ENSP00000268876',
+                'represents': 'uniprot:Q8IWX7'
+            },
+            '9606.ENSP00000276480': {
+                'display_name': 'ST18',
+                'alias': 'ncbigene:9705|ensembl:ENSP00000276480',
+                'represents': 'uniprot:O60284'
+            },
+            '9606.ENSP00000353549': {
+                'display_name': 'CDC16',
+                'alias': 'ncbigene:8881|ensembl:ENSP00000353549',
+                'represents': 'uniprot:Q13042'
+            },
+            '9606.ENSP00000364486': {
+                'display_name': 'FBP2',
+                'alias': 'ncbigene:8789|ensembl:ENSP00000364486',
+                'represents': 'uniprot:O00757'
+            }
+        }
+
+        temp_dir = tempfile.mkdtemp()
+        temp_file = 'tmp.txt'
+        temp_file_1 = 'tmp1.txt'
+
         try:
-            temp_dir = tempfile.mkdtemp()
-            confile = os.path.join(temp_dir, 'some.conf')
-            with open(confile, 'w') as f:
-                f.write("""[hi]
-                {user} = bob
-                {pw} = smith
-                {server} = dev.ndexbio.org""".format(user=NDExUtilConfig.USER,
-                                                     pw=NDExUtilConfig.PASSWORD,
-                                                     server=NDExUtilConfig.SERVER))
-            res = ndexloadstring.main(['myprog.py', '--conf',
-                                                     confile, '--profile',
-                                                     'hi', 'datadir'])
-            self.assertEqual(2, res)
+            f = os.path.join(temp_dir, temp_file)
+
+            self._args.datadir = temp_dir
+            self._full_name_file = f
+
+            self._output_tsv_file_name = os.path.join(temp_dir, temp_file_1)
+
+
+            f = os.path.join(temp_dir, temp_file)
+
+            # create file with duplicate records
+            with open(f, 'w') as o_f:
+                for line in duplicate_records:
+                    o_f.write(line + '\n')
+                    o_f.flush()
+
+            # validate that the file with duplicate records was written fine
+            with open(f, 'r') as i_f:
+                index = 0
+                for line in i_f:
+                    self.assertEqual(line.rstrip(), duplicate_records[index])
+                    index += 1
+
+
+            temp_file_1 = 'tmp1.txt'
+            f_no_duplicates = os.path.join(temp_dir, temp_file_1)
+
+            # now, generate a new file without duplicates
+            string_loader = NDExSTRINGLoader(self._args)
+            string_loader.create_output_tsv_file(f_no_duplicates, f, ensembl_ids)
+
+
+            # records that should be in the new file after calling create_output_tsv_file
+            unique_records = [
+               'ACOT2\tuniprot:P49753\tncbigene:10965|ensembl:ENSP00000238651\tFBP2\tuniprot:O00757\tncbigene:8789|ensembl:ENSP00000364486\t0\t0\t0\t0\t0\t0\t45\t0\t0\t800\t0\t0\t0\t800',
+               'UNC45B\tuniprot:Q8IWX7\tncbigene:146862|ensembl:ENSP00000268876\tMYH9\tuniprot:P3557\tncbigene:4627|ensembl:ENSP00000216181\t0\t0\t0\t0\t0\t0\t73\t0\t381\t0\t0\t422\t203\t700',
+               'CDC16\tuniprot:Q13042\tncbigene:8881|ensembl:ENSP00000353549\tANAPC5\tuniprot:Q9UJX4\tncbigene:51433|ensembl:ENSP00000261819\t0\t0\t0\t0\t0\t102\t90\t987\t260\t900\t0\t754\t622\t999'
+            ]
+
+            # open the newly-generated file and validate that all records are unique
+            with open(f_no_duplicates, 'r') as i_f:
+                index = 0
+                next(i_f) # skip header
+                for line in i_f:
+                    self.assertEqual(line.rstrip(), unique_records[index])
+                    index += 1
+
         finally:
             shutil.rmtree(temp_dir)

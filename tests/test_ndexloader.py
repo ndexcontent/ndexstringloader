@@ -8,8 +8,7 @@ import tempfile
 import shutil
 
 import unittest
-from ndexutil.config import NDExUtilConfig
-from ndexstringloader.ndexloadstring import NDExLoader
+from ndexstringloader.ndexloadstring import NDExSTRINGLoader
 
 
 class FakeParam(object):
@@ -27,7 +26,7 @@ class TestNdexLoader(unittest.TestCase):
 
     def test_constructor(self):
         try:
-            loader = NDExLoader(None, None)
+            loader = NDExSTRINGLoader(None)
             self.fail('Expected AttributeError')
         except AttributeError as nt:
             pass

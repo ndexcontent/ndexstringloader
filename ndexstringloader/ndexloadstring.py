@@ -65,9 +65,9 @@ def _parse_arguments(desc, args):
     parser = argparse.ArgumentParser(description=desc,
                                      formatter_class=help_fm)
 
-    parser.add_argument('datadir', help='Directory where string '
+    parser.add_argument('--datadir', help='Directory where string '
                                         'data is downloaded to '
-                                        'and processed from')
+                                        'and processed from', required=True)
     parser.add_argument('--profile', help='Profile in configuration '
                                           'file to load '
                                           'NDEx credentials which means'
@@ -140,11 +140,11 @@ def _setup_logging(args):
                               disable_existing_loggers=False)
 
 
-class NDExLoader(object):
+class NDExSTRINGLoader(object):
     """
     Class to load content
     """
-    def __init__(self, args, datadir):
+    def __init__(self, args):
         """
         :param args:
         """
@@ -153,10 +153,34 @@ class NDExLoader(object):
         self._load_plan = args.loadplan
         self._string_version = args.stringversion
         self._args = args
-        self._datadir = datadir
+        self._datadir = os.path.abspath(args.datadir)
         self._cutoffscore = args.cutoffscore
         self._iconurl = args.iconurl
         self._template = None
+
+        self._output_tsv_file_columns = [
+            "name1",
+            "represents1",
+            "alias1",
+            "name2",
+            "represents2",
+            "alias2",
+            "neighborhood",
+            "neighborhood_transferred",
+            "fusion",
+            "cooccurence",
+            "homology",
+            "coexpression",
+            "coexpression_transferred",
+            "experiments",
+            "experiments_transferred",
+            "database",
+            "database_transferred",
+            "textmining",
+            "textmining_transferred",
+            "combined_score"
+        ]
+
 
     def _parse_config(self):
         """
@@ -176,25 +200,12 @@ class NDExLoader(object):
         self._entrez_ids_file_url = con.get(self._profile, 'EntrezIdsFile')
         self._uniprot_ids_file_url = con.get(self._profile, 'UniprotIdsFile')
 
-        self._full_file_name = os.path.join(self._datadir,
-                                            con.get(self._profile,
-                                                    'full_file_name'))
-        self._entrez_file = os.path.join(self._datadir,
-                                         con.get(self._profile,
-                                                 'entrez_file'))
-        self._names_file = os.path.join(self._datadir,
-                                        con.get(self._profile,
-                                                'names_file'))
-        self._uniprot_file = os.path.join(self._datadir,
-                                          con.get(self._profile,
-                                                  'uniprot_file'))
+        self._full_file_name = os.path.join(self._datadir, con.get(self._profile, 'full_file_name'))
+        self._entrez_file = os.path.join(self._datadir, con.get(self._profile, 'entrez_file'))
+        self._names_file = os.path.join(self._datadir, con.get(self._profile, 'names_file'))
+        self._uniprot_file = os.path.join(self._datadir, con.get(self._profile, 'uniprot_file'))
+        self._output_tsv_file_name = os.path.join(self._datadir, con.get(self._profile, 'output_tsv_file_name'))
 
-        self._output_tsv_file_name = os.path.join(self._datadir,
-                                                  con.get(self._profile,
-                                                          'output_tsv_file_name'))
-        self._output_hi_conf_tsv_file_name = os.path.join(self._datadir,
-                                                          con.get(self._profile,
-                                                                  'output_hi_conf_tsv_file_name'))
 
     def _load_style_template(self):
         """
@@ -271,6 +282,66 @@ class NDExLoader(object):
 
         return ret_str
 
+
+    def create_output_tsv_file(self, output_file, input_file, ensembl_ids):
+
+        # generate output tsv file
+        logger.debug('Creating target {} file...'.format(output_file))
+
+
+        with open(output_file, 'w') as o_f:
+
+            # write header to the output tsv file
+            output_header = '\t'.join([x for x in self._output_tsv_file_columns]) + '\n'
+            o_f.write(output_header)
+
+            row_count = 1
+            dup_count = 0
+            cutoffscore_times_hundred = int(self._cutoffscore * 1000)
+
+            edges = {}
+
+            with open(input_file, 'r') as f_f:
+                next(f_f)
+                for line in f_f:
+                    columns_in_row = line.split(' ')
+
+                    combined_score = int(columns_in_row[-1].rstrip('\n'))
+
+                    if combined_score >= cutoffscore_times_hundred:
+
+                        protein1, protein2 = columns_in_row[0], columns_in_row[1]
+
+                        edge_key_1 = (protein1, protein2)
+                        edge_key_2 = (protein2, protein1)
+
+                        if edge_key_1 in edges:
+                            if edges[edge_key_1] != combined_score:
+                                Exception('duplicate edge with different scores found')
+                            else:
+                                dup_count += 1
+                                continue
+                        elif edge_key_2 in edges:
+                            if edges[edge_key_2] != combined_score:
+                                Exception('duplicate edge with different scores found')
+                            else:
+                                dup_count += 1
+                                continue
+                        else:
+                            edges[edge_key_1] = combined_score
+
+                        name_rep_alias_1 = self._get_name_rep_alias(protein1, ensembl_ids)
+                        name_rep_alias_2 = self._get_name_rep_alias(protein2, ensembl_ids)
+
+                        tsv_string = name_rep_alias_1 + '\t' + name_rep_alias_2 + '\t' + \
+                                     '\t'.join(x for x in columns_in_row[2:])
+
+                        o_f.write(tsv_string)
+                        row_count = + 1
+
+            logger.debug('Created {} ({:,} lines) \n'.format(output_file, row_count))
+            logger.debug('{:,} duplicate rows detected \n'.format(dup_count))
+
     def run(self):
         """
         Runs content loading for NDEx STRING Content Loader
@@ -288,28 +359,7 @@ class NDExLoader(object):
         duplicate_display_names = {}
         duplicate_uniprot_ids = {}
 
-        output_tsv_file_columns = [
-            "name1",
-            "represents1",
-            "alias1",
-            "name2",
-            "represents2",
-            "alias2",
-            "neighborhood",
-            "neighborhood_transferred",
-            "fusion",
-            "cooccurence",
-            "homology",
-            "coexpression",
-            "coexpression_transferred",
-            "experiments",
-            "experiments_transferred",
-            "database",
-            "database_transferred",
-            "textmining",
-            "textmining_transferred",
-            "combined_score"
-        ]
+
 
         logger.info('\nLoading {} for reading...'.format(self._full_file_name))
 
@@ -432,59 +482,11 @@ class NDExLoader(object):
 
                 row_count = row_count + 1;
 
-        logger.debug('Populated {:,} represents from {}\n'.format(row_count,
-                                                                  self._uniprot_file))
-
-        # iterate over ensembl_ids and see if there is any unresolved
-        # display names, aliases or represents
-
-        #for key, value in ensembl_ids.items():
-        #    k, v = key, value
-
-        #    if value['display_name'] is None or value['alias'] is None or value['represents'] is None:
-        #        logger.debug('For {} values are {}'.format(key, value))
+        logger.debug('Populated {:,} represents from {}\n'.format(row_count, self._uniprot_file))
 
 
-        # generate output tsv files: one general and one high confidence
-        logger.debug('Creating target {} and {} files...'.format(self._output_tsv_file_name,
-                                                                 self._output_hi_conf_tsv_file_name))
+        self.create_output_tsv_file(self._output_tsv_file_name, self._full_file_name, ensembl_ids)
 
-
-        with open(self._output_tsv_file_name, 'w') as o_f, open(self._output_hi_conf_tsv_file_name, 'w') as o_hi_conf_f:
-
-            # write header to the output tsv file
-            output_header = '\t'.join([x for x in output_tsv_file_columns]) + '\n'
-            o_f.write(output_header)
-            o_hi_conf_f.write(output_header)
-
-            row_count = 1
-            row_count_hi_conf = 1
-            cutoffscore_times_hundred = int(self._cutoffscore * 1000)
-            with open(self._full_file_name, 'r') as f_f:
-                next(f_f)
-                for line in f_f:
-                    columns_in_row = line.split(' ');
-                    protein1, protein2 = columns_in_row[0], columns_in_row[1]
-
-                    name_rep_alias_1 = self._get_name_rep_alias(protein1, ensembl_ids)
-                    name_rep_alias_2 = self._get_name_rep_alias(protein2, ensembl_ids)
-
-                    full_tsv_string = name_rep_alias_1 + '\t' + name_rep_alias_2 + '\t' + \
-                                      '\t'.join(x for x in columns_in_row[2:])
-
-                    o_f.write(full_tsv_string)
-                    row_count = row_count + 1
-
-                    combined_score = int(columns_in_row[-1].rstrip('\n'))
-                    if combined_score > cutoffscore_times_hundred:
-                        o_hi_conf_f.write(full_tsv_string)
-                        row_count_hi_conf = row_count_hi_conf + 1
-
-            logger.debug('Created {} ({:,} lines) '
-                         'and {} ({:,} lines) files\n'.format(self._output_tsv_file_name,
-                                                              row_count,
-                                                              self._output_hi_conf_tsv_file_name,
-                                                              row_count_hi_conf))
         return 0
 
     def _generate_CX_file(self, file_name, network_name):
@@ -537,7 +539,7 @@ class NDExLoader(object):
 
     def load_to_NDEx(self):
 
-        file_name = self._output_hi_conf_tsv_file_name
+        file_name = self._output_tsv_file_name
         network_name = 'STRING - Human Protein Links - ' \
                        'High Confidence (Score > ' +\
                        str(self._cutoffscore) + ')'
@@ -546,13 +548,6 @@ class NDExLoader(object):
         cx_file_name = self._generate_CX_file(file_name, network_name)
         self._update_network_on_server(cx_file_name, network_name, network_id)
 
-        # file_name = self._output_tsv_file_name
-        # network_name = "STRING - Human Protein Links"
-        # network_id = self._network_id
-        # template_id = self._template_id
-
-        # cx_file_name = self._generate_CX_file(file_name, network_name, network_id, template_id)
-        # self._update_network_on_server(cx_file_name, network_name, network_id)
 
 
 def main(args):
@@ -577,7 +572,7 @@ def main(args):
     {user} = <NDEx username>
     {password} = <NDEx password>
     {server} = <NDEx server(omit http) ie public.ndexbio.org>
-    hi_confidence = 311b0e5f-6570-11e9-8c69-525400c25d22 
+    hi_confidence = 311b0e5f-6570-11e9-8c69-525400c25d22
     ProteinLinksFile = https://stringdb-static.org/download/protein.links.full.v11.0/9606.protein.links.full.v11.0.txt.gz
     NamesFile = https://string-db.org/mapping_files/STRING_display_names/human.name_2_string.tsv.gz
     EntrezIdsFile = https://stringdb-static.org/mapping_files/entrez/human.entrez_2_string.2018.tsv.gz
@@ -600,7 +595,7 @@ def main(args):
 
     try:
         _setup_logging(theargs)
-        loader = NDExLoader(theargs, os.path.abspath(theargs.datadir))
+        loader = NDExSTRINGLoader(theargs)
         loader.run()
         loader.load_to_NDEx()
         return 0
