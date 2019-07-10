@@ -283,6 +283,24 @@ class NDExSTRINGLoader(object):
         return ret_str
 
 
+    def check_if_edge_is_duplicate(self, edge_key_1, edge_key_2, edges, combined_score):
+        is_duplicate = True
+
+        if edge_key_1 in edges:
+            if edges[edge_key_1] != combined_score:
+                raise ValueError('duplicate edge with different scores found')
+
+        elif edge_key_2 in edges:
+            if edges[edge_key_2] != combined_score:
+                raise ValueError('duplicate edge with different scores found')
+
+        else:
+            edges[edge_key_1] = combined_score
+            is_duplicate = False
+
+        return is_duplicate
+
+
     def create_output_tsv_file(self, output_file, input_file, ensembl_ids):
 
         # generate output tsv file
@@ -315,20 +333,9 @@ class NDExSTRINGLoader(object):
                         edge_key_1 = (protein1, protein2)
                         edge_key_2 = (protein2, protein1)
 
-                        if edge_key_1 in edges:
-                            if edges[edge_key_1] != combined_score:
-                                Exception('duplicate edge with different scores found')
-                            else:
-                                dup_count += 1
-                                continue
-                        elif edge_key_2 in edges:
-                            if edges[edge_key_2] != combined_score:
-                                Exception('duplicate edge with different scores found')
-                            else:
-                                dup_count += 1
-                                continue
-                        else:
-                            edges[edge_key_1] = combined_score
+                        if self.check_if_edge_is_duplicate(edge_key_1, edge_key_2, edges, combined_score):
+                            dup_count += 1
+                            continue
 
                         name_rep_alias_1 = self._get_name_rep_alias(protein1, ensembl_ids)
                         name_rep_alias_2 = self._get_name_rep_alias(protein2, ensembl_ids)

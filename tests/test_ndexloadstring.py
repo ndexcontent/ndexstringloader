@@ -81,12 +81,10 @@ class TestNdexstringloader(unittest.TestCase):
 
         # some duplicate records in the same format as in STRING 9606.protein.links.full.v11.0.txt
         duplicate_records = [
-            '9606.ENSP00000261819 9606.ENSP00000353549 0 0 0 0 0 102 90 987 260 900 0 754 622 999',
             '9606.ENSP00000238651 9606.ENSP00000364486 0 0 0 0 0 0 45 0 0 800 0 0 0 800',
             '9606.ENSP00000268876 9606.ENSP00000216181 0 0 0 0 0 0 73 0 381 0 0 422 203 700',
             '9606.ENSP00000242462 9606.ENSP00000276480 0 0 0 0 0 0 0 0 0 0 0 0 401 400',
             '9606.ENSP00000364486 9606.ENSP00000238651 0 0 0 0 0 0 45 0 0 800 0 0 0 800',
-            '9606.ENSP00000353549 9606.ENSP00000261819 0 0 0 0 0 102 90 987 260 900 0 754 622 999',
             '9606.ENSP00000276480 9606.ENSP00000242462 0 0 0 0 0 0 0 0 0 0 0 0 401 400',
             '9606.ENSP00000216181 9606.ENSP00000268876 0 0 0 0 0 0 73 0 381 0 0 422 203 700'
         ]
@@ -106,11 +104,6 @@ class TestNdexstringloader(unittest.TestCase):
                 'alias': 'ncbigene:50674|ensembl:ENSP00000242462',
                 'represents': 'uniprot:Q9Y4Z2'
             },
-            '9606.ENSP00000261819': {
-                'display_name': 'ANAPC5',
-                'alias': 'ncbigene:51433|ensembl:ENSP00000261819',
-                'represents': 'uniprot:Q9UJX4'
-            },
             '9606.ENSP00000268876': {
                 'display_name': 'UNC45B',
                 'alias': 'ncbigene:146862|ensembl:ENSP00000268876',
@@ -120,11 +113,6 @@ class TestNdexstringloader(unittest.TestCase):
                 'display_name': 'ST18',
                 'alias': 'ncbigene:9705|ensembl:ENSP00000276480',
                 'represents': 'uniprot:O60284'
-            },
-            '9606.ENSP00000353549': {
-                'display_name': 'CDC16',
-                'alias': 'ncbigene:8881|ensembl:ENSP00000353549',
-                'represents': 'uniprot:Q13042'
             },
             '9606.ENSP00000364486': {
                 'display_name': 'FBP2',
@@ -150,12 +138,14 @@ class TestNdexstringloader(unittest.TestCase):
 
             # create file with duplicate records
             with open(f, 'w') as o_f:
+                o_f.write('header line' + '\n') # the first line is header; don't care what its content in this test
                 for line in duplicate_records:
                     o_f.write(line + '\n')
-                    o_f.flush()
+                o_f.flush()
 
             # validate that the file with duplicate records was written fine
             with open(f, 'r') as i_f:
+                next(i_f)  # skip header
                 index = 0
                 for line in i_f:
                     self.assertEqual(line.rstrip(), duplicate_records[index])
@@ -187,3 +177,79 @@ class TestNdexstringloader(unittest.TestCase):
 
         finally:
             shutil.rmtree(temp_dir)
+
+
+
+    def test_exception_on_duplicate_edge_with_different_scores(self):
+
+
+        # some duplicate records in the same format as in STRING 9606.protein.links.full.v11.0.txt
+        duplicate_records = [
+            '9606.ENSP00000238651 9606.ENSP00000364486 0 0 0 0 0 0 45 0 0 800 0 0 0 800',
+            '9606.ENSP00000238651 9606.ENSP00000364486 0 0 0 0 0 0 45 0 0 800 0 0 0 801'
+        ]
+        ensembl_ids = {
+            '9606.ENSP00000238651': {
+                'display_name': 'ACOT2',
+                'alias': 'ncbigene:10965|ensembl:ENSP00000238651',
+                'represents': 'uniprot:P49753'
+            },
+            '9606.ENSP00000364486': {
+                'display_name': 'FBP2',
+                'alias': 'ncbigene:8789|ensembl:ENSP00000364486',
+                'represents': 'uniprot:O00757'
+            }
+        }
+
+        for i in range(0, 2):
+
+            temp_dir = tempfile.mkdtemp()
+            temp_file = 'tmp.txt'
+            temp_file_1 = 'tmp1.txt'
+
+            try:
+                f = os.path.join(temp_dir, temp_file)
+
+                self._args.datadir = temp_dir
+                self._full_name_file = f
+
+                self._output_tsv_file_name = os.path.join(temp_dir, temp_file_1)
+
+                f = os.path.join(temp_dir, temp_file)
+
+                # create file with duplicate records
+                with open(f, 'w') as o_f:
+                    o_f.write('header line' + '\n') # the first line is header; don't care what its content in this test
+                    for line in duplicate_records:
+                        o_f.write(line + '\n')
+                    o_f.flush()
+
+                # validate that the file with duplicate records was written fine
+                with open(f, 'r') as i_f:
+                    next(i_f)  # skip header
+                    index = 0
+                    for line in i_f:
+                        self.assertEqual(line.rstrip(), duplicate_records[index])
+                        index += 1
+
+
+                temp_file_1 = 'tmp1.txt'
+                f_no_duplicates = os.path.join(temp_dir, temp_file_1)
+
+                # now, generate a new file without duplicates
+                string_loader = NDExSTRINGLoader(self._args)
+
+                with self.assertRaises(ValueError):
+                    string_loader.create_output_tsv_file(f_no_duplicates, f, ensembl_ids)
+
+            finally:
+                shutil.rmtree(temp_dir)
+
+                # re-init dudplicates and re-rerun the teast
+                duplicate_records = [
+                    '9606.ENSP00000238651 9606.ENSP00000364486 0 0 0 0 0 0 45 0 0 800 0 0 0 801',
+                    '9606.ENSP00000364486 9606.ENSP00000238651 0 0 0 0 0 0 45 0 0 800 0 0 0 800'
+                ]
+
+
+
