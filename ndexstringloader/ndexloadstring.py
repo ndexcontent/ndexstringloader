@@ -157,6 +157,7 @@ class NDExSTRINGLoader(object):
         self._cutoffscore = args.cutoffscore
         self._iconurl = args.iconurl
         self._template = None
+        self._ndex = None
 
         self._output_tsv_file_columns = [
             "name1",
@@ -192,8 +193,6 @@ class NDExSTRINGLoader(object):
         self._user = con.get(self._profile, NDExUtilConfig.USER)
         self._pass = con.get(self._profile, NDExUtilConfig.PASSWORD)
         self._server = con.get(self._profile, NDExUtilConfig.SERVER)
-
-        self._hi_conf_network_id = con.get(self._profile, 'hi_confidence')
 
         self._protein_links_url = con.get(self._profile, 'ProteinLinksFile')
         self._names_file_url = con.get(self._profile, 'NamesFile')
@@ -522,27 +521,58 @@ class NDExSTRINGLoader(object):
         logger.debug('CX file for network {} generated\n'.format(network_name))
         return new_cx_file
 
-    def _update_network_on_server(self, new_cx_file, network_name, network_id):
+
+    def _load_or_update_network_on_server(self, new_cx_file, network_name, network_id):
 
         logger.debug('updating network {} on server {} for user {}...'.format(network_name,
                                                                               self._server,
                                                                               self._user))
-
         with open(new_cx_file, 'br') as network_out:
 
-            my_client = ndex2.client.Ndex2(host=self._server,
-                                           username=self._user,
-                                           password=self._pass)
-
             try:
-                my_client.update_cx_network(network_out, network_id)
+                if network_id is None:
+                    self._ndex.save_cx_stream_as_new_network(network_out)
+                else:
+                    self._ndex.update_cx_network(network_out, network_id)
+
             except Exception as e:
                 logger.error('server returned error: {}\n'.format(e))
             else:
-                logger.error('network {} updated on server {} for user {}\n'.format(network_name,
-                                                                                    self._server,
-                                                                                    self._user))
+                logger.error('network {} saved on server {} for user {}\n'.format(network_name,
+                                                                                self._server,
+                                                                                self._user))
         return
+
+
+    def create_ndex_connection(self):
+
+        if self._ndex is None:
+            try:
+                self._ndex = ndex2.client.Ndex2(host=self._server, username=self._user, password=self._pass)
+
+            except Exception as e:
+                logger.exception('Caught exception: {}'.format(e))
+                return None
+
+        return self._ndex
+
+
+    def get_network_uuid(self, network_name):
+
+        try:
+            network_summaries = self._ndex.get_network_summaries_for_user(self._user)
+        except Exception as e:
+            return None
+
+        for summary in network_summaries:
+            network_name_1 = summary.get('name')
+
+            if network_name_1 is not None:
+                if network_name_1 == network_name:
+                    return summary.get('externalId')
+
+        return None
+
 
     def load_to_NDEx(self):
 
@@ -550,10 +580,15 @@ class NDExSTRINGLoader(object):
         network_name = 'STRING - Human Protein Links - ' \
                        'High Confidence (Score > ' +\
                        str(self._cutoffscore) + ')'
-        network_id = self._hi_conf_network_id
+
+        if self.create_ndex_connection() is None:
+            return 2
 
         cx_file_name = self._generate_CX_file(file_name, network_name)
-        self._update_network_on_server(cx_file_name, network_name, network_id)
+
+        network_id = self.get_network_uuid(network_name)
+
+        self._load_or_update_network_on_server(cx_file_name, network_name, network_id)
 
 
 
@@ -579,7 +614,6 @@ def main(args):
     {user} = <NDEx username>
     {password} = <NDEx password>
     {server} = <NDEx server(omit http) ie public.ndexbio.org>
-    hi_confidence = 311b0e5f-6570-11e9-8c69-525400c25d22
     ProteinLinksFile = https://stringdb-static.org/download/protein.links.full.v11.0/9606.protein.links.full.v11.0.txt.gz
     NamesFile = https://string-db.org/mapping_files/STRING_display_names/human.name_2_string.tsv.gz
     EntrezIdsFile = https://stringdb-static.org/mapping_files/entrez/human.entrez_2_string.2018.tsv.gz
