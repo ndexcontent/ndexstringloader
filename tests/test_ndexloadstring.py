@@ -10,6 +10,7 @@ import shutil
 import unittest
 from ndexutil.config import NDExUtilConfig
 from ndexstringloader.ndexloadstring import NDExSTRINGLoader
+import ndexstringloader
 
 
 class Param(object):
@@ -36,11 +37,11 @@ class TestNdexstringloader(unittest.TestCase):
             'conf': None,
             'profile': None,
             'loadplan': None,
-            'stringversion': None,
+            'stringversion': '11.0',
             'args': None,
-            'datadir': None,
+            'datadir': tempfile.mkdtemp(),
             'cutoffscore': 0.7,
-            'iconurl': None
+            'iconurl': 'https://home.ndexbio.org/img/STRING-logo.png'
         }
 
         self._args = dotdict(self._args)
@@ -51,9 +52,9 @@ class TestNdexstringloader(unittest.TestCase):
         """Tear down test fixtures, if any."""
 
     @unittest.skip("skip it  now - will add later")
-    def test_parse_config(self):
+    def test_0010_parse_config(self):
 
-        temp_dir = tempfile.mkdtemp()
+        temp_dir = self._args['datadir']
         try:
             p = Param()
             p.profile = 'test_conf_section'
@@ -76,7 +77,7 @@ class TestNdexstringloader(unittest.TestCase):
             shutil.rmtree(temp_dir)
 
     @unittest.skip("skip it  now - uncomment later")
-    def test_remove_duplicate_edges(self):
+    def test_0020_remove_duplicate_edges(self):
 
         # some duplicate records in the same format as in STRING 9606.protein.links.full.v11.0.txt
         duplicate_records = [
@@ -120,14 +121,13 @@ class TestNdexstringloader(unittest.TestCase):
             }
         }
 
-        temp_dir = tempfile.mkdtemp()
+        temp_dir = self._args['datadir']
         temp_file = 'tmp.txt'
         temp_file_1 = 'tmp1.txt'
 
         try:
             f = os.path.join(temp_dir, temp_file)
 
-            self._args.datadir = temp_dir
             self._full_name_file = f
 
             self._output_tsv_file_name = os.path.join(temp_dir, temp_file_1)
@@ -178,7 +178,7 @@ class TestNdexstringloader(unittest.TestCase):
             shutil.rmtree(temp_dir)
 
     @unittest.skip("skip it  now - uncomment later")
-    def test_exception_on_duplicate_edge_with_different_scores(self):
+    def test_0030_exception_on_duplicate_edge_with_different_scores(self):
 
 
         # some duplicate records in the same format as in STRING 9606.protein.links.full.v11.0.txt
@@ -201,14 +201,13 @@ class TestNdexstringloader(unittest.TestCase):
 
         for i in range(0, 2):
 
-            temp_dir = tempfile.mkdtemp()
+            temp_dir = self._args['datadir']
             temp_file = 'tmp.txt'
             temp_file_1 = 'tmp1.txt'
 
             try:
                 f = os.path.join(temp_dir, temp_file)
 
-                self._args.datadir = temp_dir
                 self._full_name_file = f
 
                 self._output_tsv_file_name = os.path.join(temp_dir, temp_file_1)
@@ -242,13 +241,57 @@ class TestNdexstringloader(unittest.TestCase):
 
             finally:
                 shutil.rmtree(temp_dir)
+                self._args['datadir'] = tempfile.mkdtemp()
 
-                # re-init dudplicates and re-rerun the teast
+                # re-init duplicates and re-rerun the teast
                 duplicate_records = [
                     '9606.ENSP00000238651 9606.ENSP00000364486 0 0 0 0 0 0 45 0 0 800 0 0 0 801',
                     '9606.ENSP00000364486 9606.ENSP00000238651 0 0 0 0 0 0 45 0 0 800 0 0 0 800'
                 ]
 
 
-    def test_get_network_uuid(self):
-        pass
+    def test_0040_init_network_atributes(self):
+        net_attributes = {}
+
+        cutoffscore = str(self._args['cutoffscore'])
+
+        net_attributes['name'] = 'STRING - Human Protein Links - High Confidence (Score >= ' + cutoffscore + ')'
+
+        net_attributes['description'] = '<br>This network contains high confidence (score >= ' \
+                    + cutoffscore + ') human protein links with combined scores. ' \
+                    + 'Edge color was mapped to the combined score value using a gradient from light grey ' \
+                    + '(low Score) to black (high Score).'
+
+        net_attributes['rights'] = 'Attribution 4.0 International (CC BY 4.0)'
+
+        net_attributes['rightsHolder'] = 'STRING CONSORTIUM'
+
+        net_attributes['version'] = self._args['stringversion']
+
+        net_attributes['organism'] = 'Homo sapiens (human)'
+
+        net_attributes['networkType'] = ['interactome', 'ppi']
+
+        net_attributes['reference'] = '<p>Szklarczyk D, Morris JH, Cook H, Kuhn M, Wyder S, ' \
+                    + 'Simonovic M, Santos A, Doncheva NT, Roth A, Bork P, Jensen LJ, von Mering C.<br><b> ' \
+                    + 'The STRING database in 2017: quality-controlled protein-protein association networks, ' \
+                    + 'made broadly accessible.</b><br>Nucleic Acids Res. 2017 Jan; ' \
+                    + '45:D362-68.<br> <a target="_blank" href="https://doi.org/10.1093/nar/gkw937">' \
+                    + 'DOI:10.1093/nar/gkw937</a></p>'
+
+        net_attributes['prov:wasDerivedFrom'] = \
+            'https://stringdb-static.org/download/protein.links.full.v11.0/9606.protein.links.full.v11.0.txt.gz'
+
+        net_attributes['prov:wasGeneratedBy'] = \
+            '<a href="https://github.com/ndexcontent/ndexstringloader" target="_blank">ndexstringloader ' \
+            + str(ndexstringloader.__version__) + '</a>'
+
+        net_attributes['__iconurl'] = self._args['iconurl']
+
+
+        loader = NDExSTRINGLoader(self._args)
+
+        # get network attributes from STRING loader object
+        network_attributes = loader._init_network_attributes()
+
+        self.assertDictEqual(net_attributes, network_attributes, 'unexpected network properties')

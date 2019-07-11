@@ -495,48 +495,75 @@ class NDExSTRINGLoader(object):
 
         return 0
 
-    def _generate_CX_file(self, file_name, network_name):
+
+    def _init_network_attributes(self):
+        net_attributes = {}
+
+        net_attributes['name'] = 'STRING - Human Protein Links - High Confidence (Score >= ' \
+                                 + str(self._cutoffscore) + ')'
+
+        net_attributes['description'] = '<br>This network contains high confidence (score >= ' \
+                    + str(self._cutoffscore) + ') human protein links with combined scores. ' \
+                    + 'Edge color was mapped to the combined score value using a gradient from light grey ' \
+                    + '(low Score) to black (high Score).'
+
+        net_attributes['rights'] = 'Attribution 4.0 International (CC BY 4.0)'
+
+        net_attributes['rightsHolder'] = 'STRING CONSORTIUM'
+
+        net_attributes['version'] = self._string_version
+
+        net_attributes['organism'] = 'Homo sapiens (human)'
+
+        net_attributes['networkType'] = ['interactome', 'ppi']
+
+        net_attributes['reference'] = '<p>Szklarczyk D, Morris JH, Cook H, Kuhn M, Wyder S, ' \
+                    + 'Simonovic M, Santos A, Doncheva NT, Roth A, Bork P, Jensen LJ, von Mering C.<br><b> ' \
+                    + 'The STRING database in 2017: quality-controlled protein-protein association networks, ' \
+                    + 'made broadly accessible.</b><br>Nucleic Acids Res. 2017 Jan; ' \
+                    + '45:D362-68.<br> <a target="_blank" href="https://doi.org/10.1093/nar/gkw937">' \
+                    + 'DOI:10.1093/nar/gkw937</a></p>'
+
+        net_attributes['prov:wasDerivedFrom'] = \
+            'https://stringdb-static.org/download/protein.links.full.v11.0/9606.protein.links.full.v11.0.txt.gz'
+
+        net_attributes['prov:wasGeneratedBy'] = \
+            '<a href="https://github.com/ndexcontent/ndexstringloader" target="_blank">ndexstringloader ' \
+            + str(ndexstringloader.__version__) + '</a>'
+
+        net_attributes['__iconurl'] = self._iconurl
+
+        return net_attributes
+
+
+
+    def _generate_CX_file(self, network_attributes):
+        file_name = self._output_tsv_file_name
         new_cx_file = file_name + '.cx'
 
-        logger.debug('generating CX file for network {}...'.format(network_name))
+        logger.debug('generating CX file for network {}...'.format(network_attributes['name']))
 
         with open(file_name, 'r') as tsvfile:
 
             with open(new_cx_file, "w") as out:
                 loader = StreamTSVLoader(self._load_plan, self._template)
 
-                description = '<br>This network contains high confidence (score >= ' \
-                    + str(self._cutoffscore) + ') human protein links with combined scores. Edge color was mapped to ' \
-                    + 'the combined score value using a gradient from light grey (low Score) to black (high Score).'
-
-                reference = '<p>Szklarczyk D, Morris JH, Cook H, Kuhn M, Wyder S, Simonovic M, Santos A, ' \
-                    + 'Doncheva NT, Roth A, Bork P, Jensen LJ, von Mering C.<br><b> ' \
-                    + 'The STRING database in 2017: quality-controlled protein-protein association networks, ' \
-                    + 'made broadly accessible.</b><br>Nucleic Acids Res. 2017 Jan; ' \
-                    + '45:D362-68.<br> <a target="_blank" href="https://doi.org/10.1093/nar/gkw937">' \
-                    + 'DOI:10.1093/nar/gkw937</a></p>'
-
                 loader.write_cx_network(tsvfile, out,
                     [
-                        {'n': 'name', 'v': network_name},
-                        {'n': 'description', 'v': description},
-                        {'n': 'rights', 'v': 'Attribution 4.0 International (CC BY 4.0)'},
-                        {'n': 'rightsHolder', 'v': 'STRING CONSORTIUM'},
-                        {'n': 'version', 'v': self._string_version},
-                        {'n': 'organism', 'v': 'Human, 9606, Homo sapiens '},
-                        {'n': 'networkType', 'v': ['interactome', 'ppi'], 'd': 'list_of_string'},
-                        {'n': 'reference', 'v': reference},
-                        {'n': 'prov:wasDerivedFrom', 'v':
-                            'https://stringdb-static.org/download/protein.links.full.v11.0/9606.protein.links.full.v11.0.txt.gz'
-                         },
-                        {'n': 'prov:wasGeneratedBy', 'v':
-                            '<a href="https://github.com/ndexcontent/ndexstringloader" target="_blank">ndexstringloader ' + str(
-                                ndexstringloader.__version__) + '</a>'},
-
-                        {'n': '__iconurl', 'v': self._iconurl}
+                        {'n': 'name', 'v': network_attributes['name']},
+                        {'n': 'description', 'v': network_attributes['description']},
+                        {'n': 'rights', 'v': network_attributes['rights']},
+                        {'n': 'rightsHolder', 'v': network_attributes['rightsHolder']},
+                        {'n': 'version', 'v': network_attributes['version']},
+                        {'n': 'organism', 'v': network_attributes['organism']},
+                        {'n': 'networkType', 'v': network_attributes['networkType'], 'd': 'list_of_string'},
+                        {'n': 'reference', 'v': network_attributes['reference']},
+                        {'n': 'prov:wasDerivedFrom', 'v': network_attributes['prov:wasDerivedFrom']},
+                        {'n': 'prov:wasGeneratedBy', 'v': network_attributes['prov:wasGeneratedBy']},
+                        {'n': '__iconurl', 'v': network_attributes['__iconurl']}
                     ])
 
-        logger.debug('CX file for network {} generated\n'.format(network_name))
+        logger.debug('CX file for network {} generated\n'.format(network_attributes['name']))
         return new_cx_file
 
 
@@ -594,15 +621,15 @@ class NDExSTRINGLoader(object):
 
     def load_to_NDEx(self):
 
-        file_name = self._output_tsv_file_name
-        network_name = 'STRING - Human Protein Links - ' \
-                       'High Confidence (Score > ' +\
-                       str(self._cutoffscore) + ')'
-
         if self.create_ndex_connection() is None:
             return 2
 
-        cx_file_name = self._generate_CX_file(file_name, network_name)
+
+        network_attributes = self._init_network_attributes()
+
+        cx_file_name = self._generate_CX_file(network_attributes)
+
+        network_name = network_attributes['name']
 
         network_id = self.get_network_uuid(network_name)
 
