@@ -359,8 +359,13 @@ class NDExSTRINGLoader(object):
 
 
     def _check_if_data_dir_exists(self):
+        data_dir_existed = True
+
         if not os.path.exists(self._datadir):
+            data_dir_existed = False
             os.makedirs(self._datadir)
+
+        return data_dir_existed
 
     def run(self):
         """
@@ -371,9 +376,9 @@ class NDExSTRINGLoader(object):
         self._parse_config()
         self._load_style_template()
 
-        self._check_if_data_dir_exists()
+        data_dir_existed = self._check_if_data_dir_exists()
 
-        if self._args.skipdownload is False:
+        if self._args.skipdownload is False or data_dir_existed is False:
             self._download_STRING_files()
             self._unpack_STRING_files()
 
@@ -590,13 +595,15 @@ class NDExSTRINGLoader(object):
             try:
                 if network_id is None:
                     self._ndex.save_cx_stream_as_new_network(network_out)
+                    action = 'saved'
                 else:
                     self._ndex.update_cx_network(network_out, network_id)
+                    action = 'updated'
 
             except Exception as e:
                 logger.error('server returned error: {}\n'.format(e))
             else:
-                logger.error('network {} saved on server {} for user {}\n'.format(network_name,
+                logger.info('network {} {} on server {} for user {}\n'.format(network_name, action,
                                                                                 self._server,
                                                                                 self._user))
         return
