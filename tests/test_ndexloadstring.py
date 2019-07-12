@@ -47,28 +47,28 @@ class TestNdexstringloader(unittest.TestCase):
         self._args = dotdict(self._args)
 
 
-
     def tearDown(self):
         """Tear down test fixtures, if any."""
+        if os.path.exists(self._args['datadir']):
+            shutil.rmtree(self._args['datadir'])
 
-    @unittest.skip("skip it  now - will add later")
+    #@unittest.skip("skip it  now - uncomment later")
     def test_0010_parse_config(self):
 
         temp_dir = self._args['datadir']
         try:
             p = Param()
-            p.profile = 'test_conf_section'
-            conf = os.path.join(temp_dir, 'temp.conf')
-            p.conf = conf
+            self._args['profile'] = 'test_conf_section'
+            self._args['conf'] = os.path.join(temp_dir, 'temp.conf')
 
-            with open(conf, 'w') as f:
-                f.write('[' + p.profile + ']' + '\n')
+            with open(self._args['conf'], 'w') as f:
+                f.write('[' + self._args['profile'] + ']' + '\n')
                 f.write(NDExUtilConfig.USER + ' = aaa\n')
                 f.write(NDExUtilConfig.PASSWORD + ' = bbb\n')
                 f.write(NDExUtilConfig.SERVER + ' = dev.ndexbio.org\n')
                 f.flush()
 
-            loader = NDExSTRINGLoader(p)
+            loader = NDExSTRINGLoader(self._args)
             loader._parse_config()
             self.assertEqual('aaa', loader._user)
             self.assertEqual('bbb', loader._pass)
@@ -76,7 +76,8 @@ class TestNdexstringloader(unittest.TestCase):
         finally:
             shutil.rmtree(temp_dir)
 
-    @unittest.skip("skip it  now - uncomment later")
+
+    #@unittest.skip("skip it  now - uncomment later")
     def test_0020_remove_duplicate_edges(self):
 
         # some duplicate records in the same format as in STRING 9606.protein.links.full.v11.0.txt
@@ -122,41 +123,29 @@ class TestNdexstringloader(unittest.TestCase):
         }
 
         temp_dir = self._args['datadir']
-        temp_file = 'tmp.txt'
-        temp_file_1 = 'tmp1.txt'
 
         try:
-            f = os.path.join(temp_dir, temp_file)
+            string_loader = NDExSTRINGLoader(self._args)
 
-            self._full_name_file = f
-
-            self._output_tsv_file_name = os.path.join(temp_dir, temp_file_1)
-
-
-            f = os.path.join(temp_dir, temp_file)
+            file_with_duplicates = os.path.join(temp_dir, string_loader._full_file_name)
 
             # create file with duplicate records
-            with open(f, 'w') as o_f:
+            with open(file_with_duplicates, 'w') as o_f:
                 o_f.write('header line' + '\n') # the first line is header; don't care what its content in this test
                 for line in duplicate_records:
                     o_f.write(line + '\n')
                 o_f.flush()
 
             # validate that the file with duplicate records was written fine
-            with open(f, 'r') as i_f:
+            with open(file_with_duplicates, 'r') as i_f:
                 next(i_f)  # skip header
                 index = 0
                 for line in i_f:
                     self.assertEqual(line.rstrip(), duplicate_records[index])
                     index += 1
 
-
-            temp_file_1 = 'tmp1.txt'
-            f_no_duplicates = os.path.join(temp_dir, temp_file_1)
-
-            # now, generate a new file without duplicates
-            string_loader = NDExSTRINGLoader(self._args)
-            string_loader.create_output_tsv_file(f_no_duplicates, f, ensembl_ids)
+            # generate tsv file without duplicates
+            string_loader.create_output_tsv_file(ensembl_ids)
 
 
             # records that should be in the new file after calling create_output_tsv_file
@@ -167,7 +156,7 @@ class TestNdexstringloader(unittest.TestCase):
             ]
 
             # open the newly-generated file and validate that all records are unique
-            with open(f_no_duplicates, 'r') as i_f:
+            with open(string_loader._output_tsv_file_name, 'r') as i_f:
                 index = 0
                 next(i_f) # skip header
                 for line in i_f:
@@ -177,9 +166,9 @@ class TestNdexstringloader(unittest.TestCase):
         finally:
             shutil.rmtree(temp_dir)
 
-    @unittest.skip("skip it  now - uncomment later")
-    def test_0030_exception_on_duplicate_edge_with_different_scores(self):
 
+    #@unittest.skip("skip it  now - uncomment later")
+    def test_0030_exception_on_duplicate_edge_with_different_scores(self):
 
         # some duplicate records in the same format as in STRING 9606.protein.links.full.v11.0.txt
         duplicate_records = [
@@ -199,45 +188,33 @@ class TestNdexstringloader(unittest.TestCase):
             }
         }
 
-        for i in range(0, 2):
 
+        for i in range(0, 2):
             temp_dir = self._args['datadir']
-            temp_file = 'tmp.txt'
-            temp_file_1 = 'tmp1.txt'
 
             try:
-                f = os.path.join(temp_dir, temp_file)
+                string_loader = NDExSTRINGLoader(self._args)
 
-                self._full_name_file = f
-
-                self._output_tsv_file_name = os.path.join(temp_dir, temp_file_1)
-
-                f = os.path.join(temp_dir, temp_file)
+                file_with_duplicates = os.path.join(temp_dir, string_loader._full_file_name)
 
                 # create file with duplicate records
-                with open(f, 'w') as o_f:
-                    o_f.write('header line' + '\n') # the first line is header; don't care what its content in this test
+                with open(file_with_duplicates, 'w') as o_f:
+                    o_f.write(
+                        'header line' + '\n')  # the first line is header; don't care what its content in this test
                     for line in duplicate_records:
                         o_f.write(line + '\n')
                     o_f.flush()
 
                 # validate that the file with duplicate records was written fine
-                with open(f, 'r') as i_f:
+                with open(file_with_duplicates, 'r') as i_f:
                     next(i_f)  # skip header
                     index = 0
                     for line in i_f:
                         self.assertEqual(line.rstrip(), duplicate_records[index])
                         index += 1
 
-
-                temp_file_1 = 'tmp1.txt'
-                f_no_duplicates = os.path.join(temp_dir, temp_file_1)
-
-                # now, generate a new file without duplicates
-                string_loader = NDExSTRINGLoader(self._args)
-
                 with self.assertRaises(ValueError):
-                    string_loader.create_output_tsv_file(f_no_duplicates, f, ensembl_ids)
+                    string_loader.create_output_tsv_file(ensembl_ids)
 
             finally:
                 shutil.rmtree(temp_dir)
@@ -250,6 +227,7 @@ class TestNdexstringloader(unittest.TestCase):
                 ]
 
 
+    #@unittest.skip("skip it  now - uncomment later")
     def test_0040_init_network_atributes(self):
         net_attributes = {}
 
@@ -295,3 +273,26 @@ class TestNdexstringloader(unittest.TestCase):
         network_attributes = loader._init_network_attributes()
 
         self.assertDictEqual(net_attributes, network_attributes, 'unexpected network properties')
+
+
+    #@unittest.skip("skip it  now - uncomment later")
+    def test_0050_check_if_data_dir_exists(self):
+
+        self._args['datadir'] = '__temp_dir_for_testing__'
+        absolute_path = os.path.abspath(self._args['datadir'])
+
+        if os.path.exists(absolute_path):
+            os.rmdir(absolute_path)
+
+        loader = NDExSTRINGLoader(self._args)
+
+        # _check_if_data_dir_exists will create dir if it doesn't exist
+        loader._check_if_data_dir_exists()
+        self.assertTrue(os.path.exists(absolute_path))
+
+        os.rmdir(absolute_path)
+        self.assertFalse(os.path.exists(absolute_path))
+
+
+
+

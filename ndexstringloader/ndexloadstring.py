@@ -182,6 +182,25 @@ class NDExSTRINGLoader(object):
             "combined_score"
         ]
 
+        self._protein_links_url = \
+            'https://stringdb-static.org/download/protein.links.full.v11.0/9606.protein.links.full.v11.0.txt.gz'
+
+        self._names_file_url = \
+            'https://string-db.org/mapping_files/STRING_display_names/human.name_2_string.tsv.gz'
+
+        self._entrez_ids_file_url = \
+            'https://stringdb-static.org/mapping_files/entrez/human.entrez_2_string.2018.tsv.gz'
+
+        self._uniprot_ids_file_url = \
+            'https://string-db.org/mapping_files/uniprot/human.uniprot_2_string.2018.tsv.gz'
+
+        self._full_file_name = os.path.join(self._datadir, '9606.protein.links.full.v11.0.txt')
+        self._entrez_file = os.path.join(self._datadir, 'entrez_2_string.2018.tsv')
+        self._names_file = os.path.join(self._datadir, 'name_2_string.tsv')
+        self._uniprot_file = os.path.join(self._datadir, 'uniprot_2_string.2018.tsv')
+        self._output_tsv_file_name = os.path.join(self._datadir, '9606.protein.links.tsv')
+        self._cx_network = os.path.join(self._datadir, '9606.protein.links.cx')
+
 
     def _parse_config(self):
         """
@@ -193,17 +212,6 @@ class NDExSTRINGLoader(object):
         self._user = con.get(self._profile, NDExUtilConfig.USER)
         self._pass = con.get(self._profile, NDExUtilConfig.PASSWORD)
         self._server = con.get(self._profile, NDExUtilConfig.SERVER)
-
-        self._protein_links_url = con.get(self._profile, 'ProteinLinksFile')
-        self._names_file_url = con.get(self._profile, 'NamesFile')
-        self._entrez_ids_file_url = con.get(self._profile, 'EntrezIdsFile')
-        self._uniprot_ids_file_url = con.get(self._profile, 'UniprotIdsFile')
-
-        self._full_file_name = os.path.join(self._datadir, con.get(self._profile, 'full_file_name'))
-        self._entrez_file = os.path.join(self._datadir, con.get(self._profile, 'entrez_file'))
-        self._names_file = os.path.join(self._datadir, con.get(self._profile, 'names_file'))
-        self._uniprot_file = os.path.join(self._datadir, con.get(self._profile, 'uniprot_file'))
-        self._output_tsv_file_name = os.path.join(self._datadir, con.get(self._profile, 'output_tsv_file_name'))
 
 
     def _load_style_template(self):
@@ -300,9 +308,10 @@ class NDExSTRINGLoader(object):
         return is_duplicate
 
 
-    def create_output_tsv_file(self, output_file, input_file, ensembl_ids):
+    def create_output_tsv_file(self, ensembl_ids):
 
         # generate output tsv file
+        output_file = self._output_tsv_file_name
         logger.debug('Creating target {} file...'.format(output_file))
 
 
@@ -318,7 +327,7 @@ class NDExSTRINGLoader(object):
 
             edges = {}
 
-            with open(input_file, 'r') as f_f:
+            with open(self._full_file_name, 'r') as f_f:
                 next(f_f)
                 for line in f_f:
                     columns_in_row = line.split(' ')
@@ -348,6 +357,11 @@ class NDExSTRINGLoader(object):
             logger.debug('Created {} ({:,} lines) \n'.format(output_file, row_count))
             logger.debug('{:,} duplicate rows detected \n'.format(dup_count))
 
+
+    def _check_if_data_dir_exists(self):
+        if not os.path.exists(self._datadir):
+            os.makedirs(self._datadir)
+
     def run(self):
         """
         Runs content loading for NDEx STRING Content Loader
@@ -356,6 +370,8 @@ class NDExSTRINGLoader(object):
         """
         self._parse_config()
         self._load_style_template()
+
+        self._check_if_data_dir_exists()
 
         if self._args.skipdownload is False:
             self._download_STRING_files()
@@ -491,7 +507,7 @@ class NDExSTRINGLoader(object):
         logger.debug('Populated {:,} represents from {}\n'.format(row_count, self._uniprot_file))
 
 
-        self.create_output_tsv_file(self._output_tsv_file_name, self._full_file_name, ensembl_ids)
+        self.create_output_tsv_file(ensembl_ids)
 
         return 0
 
@@ -538,14 +554,12 @@ class NDExSTRINGLoader(object):
 
 
     def _generate_CX_file(self, network_attributes):
-        file_name = self._output_tsv_file_name
-        new_cx_file = file_name + '.cx'
 
         logger.debug('generating CX file for network {}...'.format(network_attributes['name']))
 
-        with open(file_name, 'r') as tsvfile:
+        with open(self._output_tsv_file_name, 'r') as tsvfile:
 
-            with open(new_cx_file, "w") as out:
+            with open(self._cx_network, "w") as out:
                 loader = StreamTSVLoader(self._load_plan, self._template)
 
                 loader.write_cx_network(tsvfile, out,
@@ -564,16 +578,15 @@ class NDExSTRINGLoader(object):
                     ])
 
         logger.debug('CX file for network {} generated\n'.format(network_attributes['name']))
-        return new_cx_file
 
 
-    def _load_or_update_network_on_server(self, new_cx_file, network_name, network_id):
+
+    def _load_or_update_network_on_server(self, network_name, network_id):
 
         logger.debug('updating network {} on server {} for user {}...'.format(network_name,
                                                                               self._server,
                                                                               self._user))
-        with open(new_cx_file, 'br') as network_out:
-
+        with open(self._cx_network, 'br') as network_out:
             try:
                 if network_id is None:
                     self._ndex.save_cx_stream_as_new_network(network_out)
@@ -624,16 +637,15 @@ class NDExSTRINGLoader(object):
         if self.create_ndex_connection() is None:
             return 2
 
-
         network_attributes = self._init_network_attributes()
 
-        cx_file_name = self._generate_CX_file(network_attributes)
+        self._generate_CX_file(network_attributes)
 
         network_name = network_attributes['name']
 
         network_id = self.get_network_uuid(network_name)
 
-        self._load_or_update_network_on_server(cx_file_name, network_name, network_id)
+        self._load_or_update_network_on_server(network_name, network_id)
 
 
 
@@ -659,16 +671,7 @@ def main(args):
     {user} = <NDEx username>
     {password} = <NDEx password>
     {server} = <NDEx server(omit http) ie public.ndexbio.org>
-    ProteinLinksFile = https://stringdb-static.org/download/protein.links.full.v11.0/9606.protein.links.full.v11.0.txt.gz
-    NamesFile = https://string-db.org/mapping_files/STRING_display_names/human.name_2_string.tsv.gz
-    EntrezIdsFile = https://stringdb-static.org/mapping_files/entrez/human.entrez_2_string.2018.tsv.gz
-    UniprotIdsFile = https://string-db.org/mapping_files/uniprot/human.uniprot_2_string.2018.tsv.gz
-    full_file_name = 9606.protein.links.full.v11.0.txt
-    entrez_file = human.entrez_2_string.2018.tsv
-    names_file = human.name_2_string.tsv
-    uniprot_file = human.uniprot_2_string.2018.tsv
-    output_tsv_file_name = 9606.protein.links.full.v11.0.tsv.txt
-    output_hi_conf_tsv_file_name = 9606.protein.links.full.v11.0.hi_conf.tsv.txt
+
 
     """.format(confname=NDExUtilConfig.CONFIG_FILE,
                user=NDExUtilConfig.USER,
@@ -686,7 +689,9 @@ def main(args):
         loader.load_to_NDEx()
         return 0
     except Exception as e:
-        logger.exception('Caught exception')
+        #sys.tracebacklimit = 1
+        print("\n{}: {}".format(type(e).__name__, e))
+        logger.exception(e)
         return 2
     finally:
         logging.shutdown()
