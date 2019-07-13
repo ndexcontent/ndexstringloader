@@ -17,19 +17,59 @@ NDEx STRING Content Loader
         :alt: Documentation Status
 
 
+Python application for loading STRING data into `NDEx <http://ndexbio.org>`_.
+
+This tool downloads and unpacks the `STRING <https://string-db.org/>`_ files below
+
+    `9606.protein.links.full.v11.0.txt.gz <https://stringdb-static.org/download/protein.links.full.v11.0/9606.protein.links.full.v11.0.txt.gz>`_
+
+    `human.name_2_string.tsv.gz <https://string-db.org/mapping_files/STRING_display_names/human.name_2_string.tsv.gz>`_
+
+    `human.entrez_2_string.2018.tsv.gz <https://stringdb-static.org/mapping_files/entrez/human.entrez_2_string.2018.tsv.gz>`_
+
+    `human.uniprot_2_string.2018.tsv.gz <https://string-db.org/mapping_files/uniprot/human.uniprot_2_string.2018.tsv.gz>`_
+
+generates a new tsv file, transforms it to CX, and uploads it to NDEx server.
 
 
-Python Boilerplate contains all the boilerplate you need to create a Python NDEx Content Loader package.
+
+**1\)** Below is an example of a record
+from `9606.protein.links.full.v11.0.txt.gz <https://stringdb-static.org/download/protein.links.full.v11.0/9606.protein.links.full.v11.0.txt.gz>`_
+
+.. code-block::
+
+9606.ENSP00000261819 9606.ENSP00000353549 0 0 0 0 0 102 90 987 260 900 0 754 622 999
 
 
-* Free software: BSD license
-* Documentation: https://ndexstringloader.readthedocs.io.
+To generate a STRING network, the loader reads rows from that file one by one and compares the value of the last
+column combined_score with the value cutoffscore argument.  The line is not added to the network generated in case
+combined_score is less than cutoffscore.
 
 
-Tools
------
+**2\)** If combined_score is no than less cutoffscore, the loader process two first columns
 
-* **ndexloadstring.py** -- Loads STRING into NDEx_
+column 1 - protein1 (9606.ENSP00000261819)
+column 2 - protein2 (9606.ENSP00000353549)
+
+When processing first column protein1, the script
+
+replaces Ensembl Id with a display name, for example 9606.ENSP00000261819 becomes ANAPC5. Mapping of
+display names to Enseml Ids is found in
+`human.name_2_string.tsv.gz <https://string-db.org/mapping_files/STRING_display_names/human.name_2_string.tsv.gz>`_
+
+uses `human.uniprot_2_string.2018.tsv.gz <https://string-db.org/mapping_files/uniprot/human.uniprot_2_string.2018.tsv.gz>`_
+to create represents value.  For example, represents for 9606.ENSP00000261819 is uniprot:Q9UJX4
+
+uses `human.entrez_2_string.2018.tsv.gz <https://stringdb-static.org/mapping_files/entrez/human.entrez_2_string.2018.tsv.gz>`_
+to create list of aliases for the current protein.  Thus, list of aliases for 9606.ENSP00000261819 is
+ncbigene:51433|ensembl:ENSP00000261819
+
+**3\)** The second column protein2 is processed the same way as column 1.
+
+**4\)**  In the generated tsv file, protein1 and protein2 values from the original file are replaced with
+
+protein_display_name_1 represents_1 alias_1 protein_display_name_2 represents_2 alias_2
+
 
 Dependencies
 ------------
