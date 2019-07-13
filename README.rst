@@ -46,14 +46,14 @@ column :code:`combined_score` with the value :code:`cutoffscore` argument.  The 
 :code:`combined_score` is less than :code:`cutoffscore`.
 
 
-**2\)** If combined_score is no than less cutoffscore, the loader process two first columns
+**2\)** If :code:`combined_score` is no than less :code:`cutoffscore`, the loader process two first columns
 
 .. code-block::
 
    column 1 - protein1 (9606.ENSP00000261819)
    column 2 - protein2 (9606.ENSP00000353549)
 
-When processing first column protein1, the script
+When processing first column :code:`protein1`, the script
 
 replaces :code:`Ensembl Id` with a :code:`display name`, for example :code:`9606.ENSP00000261819` becomes :code:`ANAPC5`. Mapping of
 display names to :code:`Enseml Ids` is found in
