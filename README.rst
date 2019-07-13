@@ -72,7 +72,19 @@ to create list of aliases for the current protein.  Thus, list of aliases for :c
 
 .. code-block::
 
-protein_display_name_1 represents_1 alias_1 protein_display_name_2 represents_2 alias_2
+   protein_display_name_1 represents_1 alias_1 protein_display_name_2 represents_2 alias_2
+
+So, the original 
+
+.. code-block::
+
+   9606.ENSP00000261819 9606.ENSP00000353549 0 0 0 0 0 102 90 987 260 900 0 754 622 999
+
+becomes
+
+.. code-block::
+
+   ANAPC5 uniprot:Q9UJX4 ncbigene:51433|ensembl:ENSP00000261819 CDC16 uniprot:Q13042  ncbigene:8881|ensembl:ENSP00000353549 0 0 0 0 0 102 90 987 260 900 0 754 622 999
 
 
 Dependencies
