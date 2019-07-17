@@ -11,6 +11,9 @@ import unittest
 from ndexutil.config import NDExUtilConfig
 from ndexstringloader.ndexloadstring import NDExSTRINGLoader
 import ndexstringloader
+from ndexstringloader import ndexloadstring
+
+import ndex2
 
 
 class Param(object):
@@ -292,6 +295,157 @@ class TestNdexstringloader(unittest.TestCase):
 
         os.rmdir(absolute_path)
         self.assertFalse(os.path.exists(absolute_path))
+
+
+    def test_0060_get_package_dir(self):
+        actual_package_dir = ndexloadstring.get_package_dir()
+        expected_package_dir = os.path.dirname(ndexstringloader.__file__)
+        self.assertEqual(actual_package_dir, expected_package_dir)
+
+    def test_0070_get_load_plan(self):
+        actual_load_plan = ndexloadstring.get_load_plan()
+        expected_load_plan = os.path.join(ndexloadstring.get_package_dir(), ndexloadstring.STRING_LOAD_PLAN)
+        self.assertEqual(actual_load_plan, expected_load_plan)
+
+    def test_0080_get_style(self):
+        actual_style = ndexloadstring.get_style()
+        expected_style = os.path.join(ndexloadstring.get_package_dir(), ndexloadstring.STYLE)
+        self.assertEqual(actual_style, expected_style)
+
+    def test_0090_parse_args(self):
+        desc = """
+        Version {version}
+
+        Loads NDEx STRING Content Loader data into NDEx (http://ndexbio.org).
+
+        To connect to NDEx server a configuration file must be passed
+        into --conf parameter. If --conf is unset, the configuration
+        ~/{confname} is examined.
+
+        The configuration file should be formatted as follows:
+
+        [<value in --profile (default dev)>]
+
+        {user} = <NDEx username>
+        {password} = <NDEx password>
+        {server} = <NDEx server(omit http) ie public.ndexbio.org>
+        """.format(confname=NDExUtilConfig.CONFIG_FILE,
+                   user=NDExUtilConfig.USER,
+                   password=NDExUtilConfig.PASSWORD,
+                   server=NDExUtilConfig.SERVER,
+                   version=ndexstringloader.__version__)
+        temp_dir = self._args['datadir']
+
+        args = []
+        args.append('--cutoffscore')
+        args.append('0.75')
+        args.append('--datadir')
+        args.append(temp_dir)
+
+        expected_args = {}
+        expected_args['conf'] = None
+        expected_args['cutoffscore'] = 0.75
+        expected_args['datadir'] = temp_dir
+        expected_args['iconurl'] = 'https://home.ndexbio.org/img/STRING-logo.png'
+        expected_args['loadplan'] = os.path.join(ndexloadstring.get_package_dir(), ndexloadstring.STRING_LOAD_PLAN)
+        expected_args['logconf'] = None
+        expected_args['profile'] = 'ndexstringloader'
+        expected_args['skipdownload'] = False
+        expected_args['stringversion'] = '11.0'
+        expected_args['style'] = os.path.join(ndexloadstring.get_package_dir(), ndexloadstring.STYLE)
+        expected_args['verbose'] = 0
+
+        the_args = ndexloadstring._parse_arguments(desc, args)
+
+        self.assertDictEqual(the_args.__dict__, expected_args)
+
+
+    def test_0100_setup_logging(self):
+
+        verbose_level = 0
+        args = {
+                'logconf': None,
+                'verbose': verbose_level
+               }
+
+        args = dotdict(args)
+        ndexloadstring._setup_logging(args)
+
+        logger_level_set = ndexloadstring.logger.getEffectiveLevel()
+
+        self.assertEqual((50 - (10 * verbose_level)), logger_level_set)
+
+
+    def test_0110_load_style_template(self):
+
+        self._args.style = ndexloadstring.get_style()
+
+        loader = NDExSTRINGLoader(self._args)
+
+        loader._load_style_template()
+
+        style_template_actual = loader.__getattribute__('_template')
+
+        style_template_expected = \
+            ndex2.create_nice_cx_from_file(os.path.abspath(os.path.join(ndexloadstring.get_package_dir(), 'style.cx')))
+
+        self.assertDictEqual(style_template_actual.__dict__, style_template_expected.__dict__)
+
+
+    def test_0120_download_and_unzip(self):
+
+        entrez_url = \
+            'https://stringdb-static.org/mapping_files/entrez/human.entrez_2_string.2018.tsv.gz'
+
+        local_file_name = 'entrez.tsv'
+        local_downloaded_file_name_unzipped = self._args['datadir'] + '/' + local_file_name
+        local_downloaded_file_name_zipped = local_downloaded_file_name_unzipped + '.gz'
+
+        loader = NDExSTRINGLoader(self._args)
+
+        loader._download(entrez_url, local_downloaded_file_name_zipped)
+        self.assertTrue(os.path.exists(local_downloaded_file_name_zipped))
+
+        loader._unzip(local_downloaded_file_name_zipped)
+        self.assertTrue(os.path.exists(local_downloaded_file_name_unzipped))
+
+
+
+    def test_0130_download_and_unzip_STRING_files(self):
+
+
+        loader = NDExSTRINGLoader(self._args)
+
+        loader._download_STRING_files()
+
+        full_file = loader.__getattribute__('_full_file_name') + '.gz'
+        names_file = loader.__getattribute__('_names_file') + '.gz'
+        entrez_file = loader.__getattribute__('_entrez_file') + '.gz'
+        uniprot_file = loader.__getattribute__('_uniprot_file') + '.gz'
+
+        self.assertTrue(os.path.exists(full_file))
+        self.assertTrue(os.path.exists(names_file))
+        self.assertTrue(os.path.exists(entrez_file))
+        self.assertTrue(os.path.exists(uniprot_file))
+
+
+        loader._unpack_STRING_files()
+
+        full_file = loader.__getattribute__('_full_file_name')
+        names_file = loader.__getattribute__('_names_file')
+        entrez_file = loader.__getattribute__('_entrez_file')
+        uniprot_file = loader.__getattribute__('_uniprot_file')
+
+        self.assertTrue(os.path.exists(full_file))
+        self.assertTrue(os.path.exists(names_file))
+        self.assertTrue(os.path.exists(entrez_file))
+        self.assertTrue(os.path.exists(uniprot_file))
+
+
+
+
+
+
 
 
 

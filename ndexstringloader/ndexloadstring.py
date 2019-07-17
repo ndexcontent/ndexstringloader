@@ -230,8 +230,8 @@ class NDExSTRINGLoader(object):
             code.write(r.content)
             logger.debug('downloaded {} to {}\n'.format(url, local_file_name))
 
-    def _unzip(self, local_file_name):
-        zip_file = local_file_name + '.gz'
+    def _unzip(self, zip_file):
+        local_file_name = zip_file[:-3]
 
         logger.info('unzipping and then removing {}...'.format(zip_file))
 
@@ -257,10 +257,10 @@ class NDExSTRINGLoader(object):
         Parses config
         :return:
         """
-        self._unzip(self._full_file_name)
-        self._unzip(self._entrez_file)
-        self._unzip(self._names_file)
-        self._unzip(self._uniprot_file)
+        self._unzip(self._full_file_name + '.gz')
+        self._unzip(self._entrez_file + '.gz')
+        self._unzip(self._names_file + '.gz')
+        self._unzip(self._uniprot_file + '.gz')
 
     def _get_name_rep_alias(self, ensembl_protein_id, ensembl_ids):
         name_rep_alias = ensembl_ids[ensembl_protein_id]
