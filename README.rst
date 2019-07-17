@@ -17,19 +17,75 @@ NDEx STRING Content Loader
         :alt: Documentation Status
 
 
+Python application for loading STRING data into `NDEx <http://ndexbio.org>`_.
+
+This tool downloads and unpacks the `STRING <https://string-db.org/>`_ files below
+
+    `9606.protein.links.full.v11.0.txt.gz <https://stringdb-static.org/download/protein.links.full.v11.0/9606.protein.links.full.v11.0.txt.gz>`_
+
+    `human.name_2_string.tsv.gz <https://string-db.org/mapping_files/STRING_display_names/human.name_2_string.tsv.gz>`_
+
+    `human.entrez_2_string.2018.tsv.gz <https://stringdb-static.org/mapping_files/entrez/human.entrez_2_string.2018.tsv.gz>`_
+
+    `human.uniprot_2_string.2018.tsv.gz <https://string-db.org/mapping_files/uniprot/human.uniprot_2_string.2018.tsv.gz>`_
+
+generates a new tsv file, transforms it to CX, and uploads it to NDEx server.
 
 
-Python Boilerplate contains all the boilerplate you need to create a Python NDEx Content Loader package.
+
+**1\)** Below is an example of a record
+from `9606.protein.links.full.v11.0.txt.gz <https://stringdb-static.org/download/protein.links.full.v11.0/9606.protein.links.full.v11.0.txt.gz>`_
+
+.. code-block::
+
+   9606.ENSP00000261819 9606.ENSP00000353549 0 0 0 0 0 102 90 987 260 900 0 754 622 999
 
 
-* Free software: BSD license
-* Documentation: https://ndexstringloader.readthedocs.io.
+To generate a STRING network, the loader reads rows from that file one by one and compares the value of the last
+column :code:`combined_score` with the value :code:`cutoffscore` argument.  The row is not added to the network generated in case
+:code:`combined_score` is less than :code:`cutoffscore`.
 
 
-Tools
------
+**2\)** If :code:`combined_score` is no than less :code:`cutoffscore`, the loader process two first columns
 
-* **ndexloadstring.py** -- Loads STRING into NDEx_
+.. code-block::
+
+   column 1 - protein1 (9606.ENSP00000261819)
+   column 2 - protein2 (9606.ENSP00000353549)
+
+When processing first column :code:`protein1`, the script
+
+replaces :code:`Ensembl Id` with a :code:`display name`, for example :code:`9606.ENSP00000261819` becomes :code:`ANAPC5`. Mapping of
+display names to :code:`Enseml Ids` is found in
+`human.name_2_string.tsv.gz <https://string-db.org/mapping_files/STRING_display_names/human.name_2_string.tsv.gz>`_
+
+uses `human.uniprot_2_string.2018.tsv.gz <https://string-db.org/mapping_files/uniprot/human.uniprot_2_string.2018.tsv.gz>`_
+to create :code:`represents` value.  For example, :code:`represents` for :code:`9606.ENSP00000261819` is :code:`uniprot:Q9UJX4`
+
+uses `human.entrez_2_string.2018.tsv.gz <https://stringdb-static.org/mapping_files/entrez/human.entrez_2_string.2018.tsv.gz>`_
+to create list of aliases for the current protein.  Thus, list of aliases for :code:`9606.ENSP00000261819` is
+:code:`ncbigene:51433|ensembl:ENSP00000261819`
+
+**3\)** The second column :code:`protein2` is processed the same way as :code:`column 1`.
+
+**4\)**  In the generated tsv file, :code:`protein1` and :code:`protein2` values from the original file are replaced with
+
+.. code-block::
+
+   protein_display_name_1 represents_1 alias_1 protein_display_name_2 represents_2 alias_2
+
+So, the original 
+
+.. code-block::
+
+   9606.ENSP00000261819 9606.ENSP00000353549 0 0 0 0 0 102 90 987 260 900 0 754 622 999
+
+becomes
+
+.. code-block::
+
+   ANAPC5 uniprot:Q9UJX4 ncbigene:51433|ensembl:ENSP00000261819 CDC16 uniprot:Q13042  ncbigene:8881|ensembl:ENSP00000353549 0 0 0 0 0 102 90 987 260 900 0 754 622 999
+
 
 Dependencies
 ------------
@@ -94,37 +150,10 @@ Networks listed in **[network_ids]** section need to be visible to the **user**
 
 .. code-block::
 
-    [dev]
+    [ndexstringloader]
     user = joe123 
     password = somepassword123 
     server = dev.ndexbio.org
-    hi_confidence = 311b0e5f-6570-11e9-8c69-525400c25d22
-    ProteinLinksFile = https://stringdb-static.org/download/protein.links.full.v11.0/9606.protein.links.full.v11.0.txt.gz
-    NamesFile = https://string-db.org/mapping_files/STRING_display_names/human.name_2_string.tsv.gz
-    EntrezIdsFile = https://stringdb-static.org/mapping_files/entrez/human.entrez_2_string.2018.tsv.gz
-    UniprotIdsFile = https://string-db.org/mapping_files/uniprot/human.uniprot_2_string.2018.tsv.gz
-    full_file_name = 9606.protein.links.full.v11.0.txt
-    entrez_file = human.entrez_2_string.2018.tsv
-    names_file = human.name_2_string.tsv
-    uniprot_file = human.uniprot_2_string.2018.tsv
-    output_tsv_file_name = 9606.protein.links.full.v11.0.tsv.txt
-    output_hi_conf_tsv_file_name = 9606.protein.links.full.v11.0.hi_conf.tsv.txt
-
-    [prod]
-    user = joe123 _prod
-    password = somepassword123_prod 
-    server = prod.ndexbio.org
-    hi_confidence = 311b0e5f-6570-11e9-8c69-525400c25d22
-    ProteinLinksFile = https://stringdb-static.org/download/protein.links.full.v11.0/9606.protein.links.full.v11.0.txt.gz
-    NamesFile = https://string-db.org/mapping_files/STRING_display_names/human.name_2_string.tsv.gz
-    EntrezIdsFile = https://stringdb-static.org/mapping_files/entrez/human.entrez_2_string.2018.tsv.gz
-    UniprotIdsFile = https://string-db.org/mapping_files/uniprot/human.uniprot_2_string.2018.tsv.gz
-    full_file_name = 9606.protein.links.full.v11.0.txt
-    entrez_file = human.entrez_2_string.2018.tsv
-    names_file = human.name_2_string.tsv
-    uniprot_file = human.uniprot_2_string.2018.tsv
-    output_tsv_file_name = 9606.protein.links.full.v11.0.tsv.txt
-    output_hi_conf_tsv_file_name = 9606.protein.links.full.v11.0.hi_conf.tsv.txt
 
 
 Needed files
