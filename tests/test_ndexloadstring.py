@@ -51,7 +51,7 @@ class TestNdexstringloader(unittest.TestCase):
 
 
     def tearDown(self):
-        """Tear down test fixtures, if any."""
+        """Remove temp directory created by setUp"""
         if os.path.exists(self._args['datadir']):
             shutil.rmtree(self._args['datadir'])
 
@@ -129,6 +129,7 @@ class TestNdexstringloader(unittest.TestCase):
 
         try:
             string_loader = NDExSTRINGLoader(self._args)
+            string_loader.__setattr__('ensembl_ids', ensembl_ids)
 
             file_with_duplicates = os.path.join(temp_dir, string_loader._full_file_name)
 
@@ -148,7 +149,7 @@ class TestNdexstringloader(unittest.TestCase):
                     index += 1
 
             # generate tsv file without duplicates
-            string_loader.create_output_tsv_file(ensembl_ids)
+            string_loader.create_output_tsv_file()
 
 
             # records that should be in the new file after calling create_output_tsv_file
@@ -197,6 +198,7 @@ class TestNdexstringloader(unittest.TestCase):
 
             try:
                 string_loader = NDExSTRINGLoader(self._args)
+                string_loader.__setattr__('ensembl_ids', ensembl_ids)
 
                 file_with_duplicates = os.path.join(temp_dir, string_loader._full_file_name)
 
@@ -217,7 +219,7 @@ class TestNdexstringloader(unittest.TestCase):
                         index += 1
 
                 with self.assertRaises(ValueError):
-                    string_loader.create_output_tsv_file(ensembl_ids)
+                    string_loader.create_output_tsv_file()
 
             finally:
                 shutil.rmtree(temp_dir)
@@ -392,6 +394,7 @@ class TestNdexstringloader(unittest.TestCase):
         self.assertDictEqual(style_template_actual.__dict__, style_template_expected.__dict__)
 
 
+    #@unittest.skip("skip it  now - uncomment later")
     def test_0120_download_and_unzip(self):
 
         entrez_url = \
@@ -410,9 +413,8 @@ class TestNdexstringloader(unittest.TestCase):
         self.assertTrue(os.path.exists(local_downloaded_file_name_unzipped))
 
 
-
+    #@unittest.skip("skip it  now - uncomment later")
     def test_0130_download_and_unzip_STRING_files(self):
-
 
         loader = NDExSTRINGLoader(self._args)
 
@@ -440,6 +442,111 @@ class TestNdexstringloader(unittest.TestCase):
         self.assertTrue(os.path.exists(names_file))
         self.assertTrue(os.path.exists(entrez_file))
         self.assertTrue(os.path.exists(uniprot_file))
+
+
+    def test_0140_get_headers_headers_of_links_file(self):
+        header = [
+            'protein1',
+            'protein2',
+            'neighborhood',
+            'neighborhood_transferred',
+            'fusion',
+            'cooccurence',
+            'homology',
+            'coexpression',
+            'coexpression_transferred',
+            'experiments',
+            'experiments_transferred',
+            'database',
+            'database_transferred',
+            'textmining',
+            'textmining_transferred',
+            'combined_score'
+        ]
+
+        header_str = ' '.join(header)
+
+        temp_dir = self._args['datadir']
+        tempfile = os.path.join(temp_dir, '__temp_link_file__.txt')
+
+        with open(tempfile, 'w') as f:
+            f.write(header_str + '\n')
+            f.flush()
+
+        loader = NDExSTRINGLoader(self._args)
+        loader.__setattr__('_full_file_name', tempfile)
+
+        header_actual = loader._get_headers_headers_of_links_file()
+
+        self.assertEqual(header, header_actual)
+
+
+    def test_0150_init_ensembl_ids(self):
+        header = [
+            'protein1',
+            'protein2',
+            'neighborhood',
+            'neighborhood_transferred',
+            'fusion',
+            'cooccurence',
+            'homology',
+            'coexpression',
+            'coexpression_transferred',
+            'experiments',
+            'experiments_transferred',
+            'database',
+            'database_transferred',
+            'textmining',
+            'textmining_transferred',
+            'combined_score'
+        ]
+        content = [
+            '9606.ENSP00000000233 9606.ENSP00000272298 0 0 0 332 0 0 62 0 181 0 0 0 125 490',
+            '9606.ENSP00000000233 9606.ENSP00000253401 0 0 0 0 0 0 0 0 186 0 0 0 56 198',
+            '9606.ENSP00000000233 9606.ENSP00000401445 0 0 0 0 0 0 0 0 160 0 0 0 0 159',
+            '9606.ENSP00000000233 9606.ENSP00000418915 0 0 0 0 0 0 61 0 158 0 0 542 0 606',
+            '9606.ENSP00000000233 9606.ENSP00000327801 0 0 0 0 0 69 61 0 78 0 0 0 89 167',
+            '9606.ENSP00000000233 9606.ENSP00000466298 0 0 0 0 0 141 0 0 131 0 0 0 98 267',
+            '9606.ENSP00000000233 9606.ENSP00000232564 0 0 0 0 0 0 62 0 171 0 0 0 56 201',
+            '9606.ENSP00000000233 9606.ENSP00000393379 0 0 0 0 0 0 61 0 131 0 0 0 43 150',
+            '9606.ENSP00000000233 9606.ENSP00000371253 0 0 0 0 0 0 61 0 0 0 0 0 224 240',
+            '9606.ENSP00000000233 9606.ENSP00000373713 0 0 0 0 0 0 63 0 63 0 0 0 237 271'
+        ]
+
+        ensembl_ids_expected = {
+            '9606.ENSP00000000233': { 'display_name': None, 'alias': None, 'represents': None },
+            '9606.ENSP00000272298': { 'display_name': None, 'alias': None, 'represents': None },
+            '9606.ENSP00000253401': { 'display_name': None, 'alias': None, 'represents': None },
+            '9606.ENSP00000401445': { 'display_name': None, 'alias': None, 'represents': None },
+            '9606.ENSP00000418915': { 'display_name': None, 'alias': None, 'represents': None },
+            '9606.ENSP00000327801': { 'display_name': None, 'alias': None, 'represents': None },
+            '9606.ENSP00000466298': { 'display_name': None, 'alias': None, 'represents': None },
+            '9606.ENSP00000232564': { 'display_name': None, 'alias': None, 'represents': None },
+            '9606.ENSP00000393379': { 'display_name': None, 'alias': None, 'represents': None },
+            '9606.ENSP00000371253': { 'display_name': None, 'alias': None, 'represents': None },
+            '9606.ENSP00000373713': { 'display_name': None, 'alias': None, 'represents': None }
+        }
+
+        header_str = ' '.join(header)
+
+        temp_dir = self._args['datadir']
+        tempfile = os.path.join(temp_dir, '__temp_link_file__.txt')
+
+        with open(tempfile, 'w') as f:
+            f.write(header_str + '\n')
+            for c in content:
+                f.write(c + '\n')
+            f.flush()
+
+        loader = NDExSTRINGLoader(self._args)
+        loader.__setattr__('_full_file_name', tempfile)
+
+        loader._init_ensembl_ids()
+
+        ensembl_ids_actual = loader.__getattribute__(('ensembl_ids'))
+
+        self.assertEqual(ensembl_ids_expected, ensembl_ids_actual)
+
 
 
 

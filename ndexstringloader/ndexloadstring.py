@@ -201,6 +201,10 @@ class NDExSTRINGLoader(object):
         self._output_tsv_file_name = os.path.join(self._datadir, '9606.protein.links.tsv')
         self._cx_network = os.path.join(self._datadir, '9606.protein.links.cx')
 
+        self.ensembl_ids = {}
+        self.duplicate_display_names = {}
+        self.duplicate_uniprot_ids = {}
+
 
     def _parse_config(self):
         """
@@ -262,8 +266,8 @@ class NDExSTRINGLoader(object):
         self._unzip(self._names_file + '.gz')
         self._unzip(self._uniprot_file + '.gz')
 
-    def _get_name_rep_alias(self, ensembl_protein_id, ensembl_ids):
-        name_rep_alias = ensembl_ids[ensembl_protein_id]
+    def _get_name_rep_alias(self, ensembl_protein_id):
+        name_rep_alias = self.ensembl_ids[ensembl_protein_id]
         use_ensembl_id_for_represents = False
 
         if name_rep_alias['display_name'] is None:
@@ -308,7 +312,7 @@ class NDExSTRINGLoader(object):
         return is_duplicate
 
 
-    def create_output_tsv_file(self, ensembl_ids):
+    def create_output_tsv_file(self):
 
         # generate output tsv file
         output_file = self._output_tsv_file_name
@@ -345,8 +349,8 @@ class NDExSTRINGLoader(object):
                             dup_count += 1
                             continue
 
-                        name_rep_alias_1 = self._get_name_rep_alias(protein1, ensembl_ids)
-                        name_rep_alias_2 = self._get_name_rep_alias(protein2, ensembl_ids)
+                        name_rep_alias_1 = self._get_name_rep_alias(protein1)
+                        name_rep_alias_2 = self._get_name_rep_alias(protein2)
 
                         tsv_string = name_rep_alias_1 + '\t' + name_rep_alias_2 + '\t' + \
                                      '\t'.join(x for x in columns_in_row[2:])
@@ -367,6 +371,38 @@ class NDExSTRINGLoader(object):
 
         return data_dir_existed
 
+
+    def _get_headers_headers_of_links_file(self):
+        headers = None
+
+        with open(self._full_file_name, 'r') as f:
+            d_reader = csv.DictReader(f)
+            headers = ((d_reader.fieldnames)[0]).split()
+
+        return headers
+
+
+
+    def _init_ensembl_ids(self):
+
+        headers = self._get_headers_headers_of_links_file()
+
+        logger.debug('Preparing a dictionary of Ensembl Ids ...')
+
+        for i in range(2):
+            df = pd.read_csv(self._full_file_name, sep='\s+', skipinitialspace=True, usecols=[headers[i]])
+            df.sort_values(headers[i], inplace=True)
+            df.drop_duplicates(subset=headers[i], keep='first', inplace=True)
+
+            for index, row in df.iterrows():
+                self.ensembl_ids[row[headers[i]]] = {}
+                self.ensembl_ids[row[headers[i]]]['display_name'] = None
+                self.ensembl_ids[row[headers[i]]]['alias'] = None
+                self.ensembl_ids[row[headers[i]]]['represents'] = None
+
+        logger.info('Found {:,} unique Ensembl Ids in {}\n'.format(len(self.ensembl_ids), self._full_file_name))
+
+
     def run(self):
         """
         Runs content loading for NDEx STRING Content Loader
@@ -382,34 +418,9 @@ class NDExSTRINGLoader(object):
             self._download_STRING_files()
             self._unpack_STRING_files()
 
-        ensembl_ids = {}
-        duplicate_display_names = {}
-        duplicate_uniprot_ids = {}
 
+        self._init_ensembl_ids()
 
-
-        logger.info('\nLoading {} for reading...'.format(self._full_file_name))
-
-        with open(self._full_file_name, 'r') as f:
-            d_reader = csv.DictReader(f)
-            headers = ((d_reader.fieldnames)[0]).split()
-
-        logger.debug('{} loaded\n'.format(self._full_file_name))
-
-        logger.debug('Preparing a dictionary of Ensembl Ids ...')
-
-        for i in range(2):
-            df = pd.read_csv(self._full_file_name, sep='\s+', skipinitialspace=True, usecols=[headers[i]])
-            df.sort_values(headers[i], inplace=True)
-            df.drop_duplicates(subset=headers[i], keep='first', inplace=True)
-
-            for index, row in df.iterrows():
-                ensembl_ids[row[headers[i]]] = {}
-                ensembl_ids[row[headers[i]]]['display_name'] = None
-                ensembl_ids[row[headers[i]]]['alias'] = None
-                ensembl_ids[row[headers[i]]]['represents'] = None
-
-        logger.info('Found {:,} unique Ensembl Ids in {}\n'.format(len(ensembl_ids), self._full_file_name))
 
         #populate name - 4.display name -> becomes name
 
@@ -424,19 +435,19 @@ class NDExSTRINGLoader(object):
                 ensembl_id = columns_in_row[2]
                 display_name = columns_in_row[1]
 
-                if ensembl_id in ensembl_ids:
+                if ensembl_id in self.ensembl_ids:
 
-                    if (ensembl_ids[ensembl_id]['display_name'] is None):
-                        ensembl_ids[ensembl_id]['display_name'] = display_name
+                    if (self.ensembl_ids[ensembl_id]['display_name'] is None):
+                        self.ensembl_ids[ensembl_id]['display_name'] = display_name
 
-                    elif display_name != ensembl_ids[ensembl_id]['display_name']:
+                    elif display_name != self.ensembl_ids[ensembl_id]['display_name']:
                         # duplicate: we found entries in human.name_2_string.tsv where same Ensembl Id maps to
                         # multiple display name.  This should never happen though
-                        if ensembl_id not in duplicate_display_names:
-                            duplicate_display_names[ensembl_id] = []
-                            duplicate_display_names[ensembl_id].append(ensembl_ids[ensembl_id]['display_name'])
+                        if ensembl_id not in self.duplicate_display_names:
+                            self.duplicate_display_names[ensembl_id] = []
+                            self.duplicate_display_names[ensembl_id].append(self.ensembl_ids[ensembl_id]['display_name'])
 
-                        duplicate_display_names[ensembl_id].append(display_name)
+                            self.duplicate_display_names[ensembl_id].append(display_name)
 
                 row_count = row_count + 1;
 
@@ -456,9 +467,9 @@ class NDExSTRINGLoader(object):
                 ensembl_id = columns_in_row[2]
                 ncbi_gene_id = columns_in_row[1]
 
-                if ensembl_id in ensembl_ids:
+                if ensembl_id in self.ensembl_ids:
 
-                    if (ensembl_ids[ensembl_id]['alias'] is None):
+                    if (self.ensembl_ids[ensembl_id]['alias'] is None):
 
                         ensembl_alias = 'ensembl:' + ensembl_id.split('.')[1]
 
@@ -472,7 +483,7 @@ class NDExSTRINGLoader(object):
                         else:
                             alias_string = ncbi_gene_id_split[0] + ensembl_alias
 
-                        ensembl_ids[ensembl_id]['alias'] = alias_string
+                            self.ensembl_ids[ensembl_id]['alias'] = alias_string
 
                     else:
                         pass
@@ -493,26 +504,26 @@ class NDExSTRINGLoader(object):
                 ensembl_id = columns_in_row[2]
                 uniprot_id = columns_in_row[1].split('|')[0]
 
-                if ensembl_id in ensembl_ids:
+                if ensembl_id in self.ensembl_ids:
 
-                    if (ensembl_ids[ensembl_id]['represents'] is None):
-                        ensembl_ids[ensembl_id]['represents'] = 'uniprot:' + uniprot_id
+                    if (self.ensembl_ids[ensembl_id]['represents'] is None):
+                        self.ensembl_ids[ensembl_id]['represents'] = 'uniprot:' + uniprot_id
 
-                    elif uniprot_id != ensembl_ids[ensembl_id]['represents']:
+                    elif uniprot_id != self.ensembl_ids[ensembl_id]['represents']:
                         # duplicate: we found entries in human.uniprot_2_string.tsv where same Ensembl Id maps to
                         # multiple uniprot ids.
-                        if ensembl_id not in duplicate_uniprot_ids:
-                            duplicate_uniprot_ids[ensembl_id] = []
-                            duplicate_uniprot_ids[ensembl_id].append(ensembl_ids[ensembl_id]['represents'])
+                        if ensembl_id not in self.duplicate_uniprot_ids:
+                            self.duplicate_uniprot_ids[ensembl_id] = []
+                            self.duplicate_uniprot_ids[ensembl_id].append(self.ensembl_ids[ensembl_id]['represents'])
 
-                            duplicate_uniprot_ids[ensembl_id].append(uniprot_id)
+                            self.duplicate_uniprot_ids[ensembl_id].append(uniprot_id)
 
                 row_count = row_count + 1;
 
         logger.debug('Populated {:,} represents from {}\n'.format(row_count, self._uniprot_file))
 
 
-        self.create_output_tsv_file(ensembl_ids)
+        self.create_output_tsv_file()
 
         return 0
 
