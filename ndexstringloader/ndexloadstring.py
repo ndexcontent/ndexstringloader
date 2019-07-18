@@ -466,14 +466,41 @@ class NDExSTRINGLoader(object):
 
                     else:
                         pass
-                else:
-                    pass
-
 
                 row_count = row_count + 1
 
         logger.debug('Populated {:,} aliases from {}\n'.format(row_count,
                                                                self._entrez_file))
+
+
+    def _populate_represents(self):
+        logger.debug('Populating represents from {}...'.format(self._uniprot_file))
+        row_count = 0
+
+        with open(self._uniprot_file, 'r') as f:
+            row1 = csv.reader(f, delimiter=' ')
+            for row in row1:
+                columns_in_row = row[0].split()
+                ensembl_id = columns_in_row[2]
+                uniprot_id = columns_in_row[1].split('|')[0]
+
+                if ensembl_id in self.ensembl_ids:
+
+                    if (self.ensembl_ids[ensembl_id]['represents'] is None):
+                        self.ensembl_ids[ensembl_id]['represents'] = 'uniprot:' + uniprot_id
+
+                    elif uniprot_id != self.ensembl_ids[ensembl_id]['represents']:
+                        # duplicate: we found entries in human.uniprot_2_string.tsv where same Ensembl Id maps to
+                        # multiple uniprot ids.
+                        if ensembl_id not in self.duplicate_uniprot_ids:
+                            self.duplicate_uniprot_ids[ensembl_id] = []
+                            self.duplicate_uniprot_ids[ensembl_id].append(self.ensembl_ids[ensembl_id]['represents'])
+
+                            self.duplicate_uniprot_ids[ensembl_id].append(uniprot_id)
+
+                row_count = row_count + 1;
+
+        logger.debug('Populated {:,} represents from {}\n'.format(row_count, self._uniprot_file))
 
 
     def run(self):
@@ -499,42 +526,13 @@ class NDExSTRINGLoader(object):
         self._populate_display_names()
 
 
-
-
         # populate alias - 3. node string id -> becomes alias, for example
         # ensembl:ENSP00000000233|ncbigene:857
 
         self._populate_aliases()
 
 
-        logger.debug('Populating represents from {}...'.format(self._uniprot_file))
-        row_count = 0
-
-        with open(self._uniprot_file, 'r') as f:
-            next(f)
-            row1 = csv.reader(f, delimiter=' ')
-            for row in row1:
-                columns_in_row = row[0].split()
-                ensembl_id = columns_in_row[2]
-                uniprot_id = columns_in_row[1].split('|')[0]
-
-                if ensembl_id in self.ensembl_ids:
-
-                    if (self.ensembl_ids[ensembl_id]['represents'] is None):
-                        self.ensembl_ids[ensembl_id]['represents'] = 'uniprot:' + uniprot_id
-
-                    elif uniprot_id != self.ensembl_ids[ensembl_id]['represents']:
-                        # duplicate: we found entries in human.uniprot_2_string.tsv where same Ensembl Id maps to
-                        # multiple uniprot ids.
-                        if ensembl_id not in self.duplicate_uniprot_ids:
-                            self.duplicate_uniprot_ids[ensembl_id] = []
-                            self.duplicate_uniprot_ids[ensembl_id].append(self.ensembl_ids[ensembl_id]['represents'])
-
-                            self.duplicate_uniprot_ids[ensembl_id].append(uniprot_id)
-
-                row_count = row_count + 1;
-
-        logger.debug('Populated {:,} represents from {}\n'.format(row_count, self._uniprot_file))
+        self._populate_represents()
 
 
         self.create_output_tsv_file()

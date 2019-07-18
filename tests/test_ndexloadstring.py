@@ -697,6 +697,92 @@ class TestNdexstringloader(unittest.TestCase):
         self.assertEqual(ensembl_ids_expected, loader.__getattribute__('ensembl_ids'))
 
 
+    def test_0160_populate_represents(self):
+        links_header = [
+            'protein1',
+            'protein2',
+            'neighborhood',
+            'neighborhood_transferred',
+            'fusion',
+            'cooccurence',
+            'homology',
+            'coexpression',
+            'coexpression_transferred',
+            'experiments',
+            'experiments_transferred',
+            'database',
+            'database_transferred',
+            'textmining',
+            'textmining_transferred',
+            'combined_score'
+        ]
+        links_content = [
+            '9606.ENSP00000000233 9606.ENSP00000253401 0 0 0 0 0 0 0 0 186 0 0 0 56 198',
+            '9606.ENSP00000000233 9606.ENSP00000401445 0 0 0 0 0 0 0 0 160 0 0 0 0 159',
+            '9606.ENSP00000000233 9606.ENSP00000418915 0 0 0 0 0 0 61 0 158 0 0 542 0 606',
+            '9606.ENSP00000000233 9606.ENSP00000327801 0 0 0 0 0 69 61 0 78 0 0 0 89 167',
+            '9606.ENSP00000000233 9606.ENSP00000466298 0 0 0 0 0 141 0 0 131 0 0 0 98 267',
+            '9606.ENSP00000000233 9606.ENSP00000232564 0 0 0 0 0 0 62 0 171 0 0 0 56 201',
+            '9606.ENSP00000000233 9606.ENSP00000393379 0 0 0 0 0 0 61 0 131 0 0 0 43 150',
+            '9606.ENSP00000000233 9606.ENSP00000371253 0 0 0 0 0 0 61 0 0 0 0 0 224 240',
+            '9606.ENSP00000000233 9606.ENSP00000373713 0 0 0 0 0 0 63 0 63 0 0 0 237 271'
+        ]
+        links_header_str = ' '.join(links_header)
+
+        ensembl_ids_expected = {
+            '9606.ENSP00000000233': { 'display_name': None, 'alias': None, 'represents': 'uniprot:P84085' },
+            '9606.ENSP00000253401': { 'display_name': None, 'alias': None, 'represents': 'uniprot:O43307' },
+            '9606.ENSP00000401445': { 'display_name': None, 'alias': None, 'represents': 'uniprot:O75460' },
+            '9606.ENSP00000418915': { 'display_name': None, 'alias': None, 'represents': 'uniprot:P42771' },
+            '9606.ENSP00000327801': { 'display_name': None, 'alias': None, 'represents': 'uniprot:P07237' },
+            '9606.ENSP00000466298': { 'display_name': None, 'alias': None, 'represents': 'uniprot:O60499' },
+            '9606.ENSP00000232564': { 'display_name': None, 'alias': None, 'represents': 'uniprot:Q9HAV0' },
+            '9606.ENSP00000393379': { 'display_name': None, 'alias': None, 'represents': 'uniprot:O60282' },
+            '9606.ENSP00000371253': { 'display_name': None, 'alias': None, 'represents': 'uniprot:P22102' },
+            '9606.ENSP00000373713': { 'display_name': None, 'alias': None, 'represents': 'uniprot:Q9NTJ5' }
+        }
+
+
+        # uniprot file doesn't have header
+        uniprot_content = [
+            '9606\tP84085|ARF5_HUMAN\t9606.ENSP00000000233\t100.0\t374.0',
+            '9606\tO43307|ARHG9_HUMAN\t9606.ENSP00000253401\t100.0\t1078.0',
+            '9606\tO75460|ERN1_HUMAN\t9606.ENSP00000401445\t100.0\t2028.0',
+            '9606\tP42771|CDN2A_HUMAN\t9606.ENSP00000418915\t98.701\t298.0',
+            '9606\tP07237|PDIA1_HUMAN\t9606.ENSP00000327801\t100.0\t1037.0',
+            '9606\tO60499|STX10_HUMAN\t9606.ENSP00000466298\t100.0\t507.0',
+            '9606\tQ9HAV0|GBB4_HUMAN\t9606.ENSP00000232564\t100.0\t703.0',
+            '9606\tO60282|KIF5C_HUMAN\t9606.ENSP00000393379\t100.0\t1965.0',
+            '9606\tP22102|PUR2_HUMAN\t9606.ENSP00000371253\t100.0\t2064.0',
+            '9606\tQ9NTJ5|SAC1_HUMAN\t9606.ENSP00000373713\t100.0\t1230.0'
+        ]
+
+        temp_dir = self._args['datadir']
+        temp_links_file = os.path.join(temp_dir, '__temp_link_file__.txt')
+        temp_uniprot_file = os.path.join(temp_dir, '__temp_uniprot_file__.txt')
+
+        with open(temp_links_file, 'w') as f:
+            f.write(links_header_str + '\n')
+            for l in links_content:
+                f.write(l + '\n')
+            f.flush()
+
+        with open(temp_uniprot_file, 'w') as f:
+            for u in uniprot_content:
+                f.write(u + '\n')
+            f.flush()
+
+
+        loader = NDExSTRINGLoader(self._args)
+        loader.__setattr__('_full_file_name', temp_links_file)
+        loader.__setattr__('_uniprot_file', temp_uniprot_file)
+
+        loader._init_ensembl_ids()
+
+        loader._populate_represents()
+        self.maxDiff = None
+        self.assertEqual(ensembl_ids_expected, loader.__getattribute__('ensembl_ids'))
+
 
     #@unittest.skip("skip it  now - uncomment later")
     def test_0900_download_and_unzip(self):
