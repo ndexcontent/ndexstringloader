@@ -382,7 +382,6 @@ class NDExSTRINGLoader(object):
         return headers
 
 
-
     def _init_ensembl_ids(self):
 
         headers = self._get_headers_headers_of_links_file()
@@ -403,27 +402,8 @@ class NDExSTRINGLoader(object):
         logger.info('Found {:,} unique Ensembl Ids in {}\n'.format(len(self.ensembl_ids), self._full_file_name))
 
 
-    def run(self):
-        """
-        Runs content loading for NDEx STRING Content Loader
-        :param theargs:
-        :return:
-        """
-        self._parse_config()
-        self._load_style_template()
 
-        data_dir_existed = self._check_if_data_dir_exists()
-
-        if self._args.skipdownload is False or data_dir_existed is False:
-            self._download_STRING_files()
-            self._unpack_STRING_files()
-
-
-        self._init_ensembl_ids()
-
-
-        #populate name - 4.display name -> becomes name
-
+    def _populate_display_names(self):
         logger.debug('Populating display names from {}...'.format(self._names_file))
         row_count = 0
 
@@ -453,9 +433,8 @@ class NDExSTRINGLoader(object):
 
         logger.debug('Populated {:,} display names from {}\n'.format(row_count, self._names_file))
 
-        # populate alias - 3. node string id -> becomes alias, for example
-        # ensembl:ENSP00000000233|ncbigene:857
 
+    def _populate_aliases(self):
         logger.debug('Populating aliases from {}...'.format(self._entrez_file))
         row_count = 0
 
@@ -487,11 +466,46 @@ class NDExSTRINGLoader(object):
 
                     else:
                         pass
+                else:
+                    pass
 
-                row_count = row_count + 1;
+
+                row_count = row_count + 1
 
         logger.debug('Populated {:,} aliases from {}\n'.format(row_count,
                                                                self._entrez_file))
+
+
+    def run(self):
+        """
+        Runs content loading for NDEx STRING Content Loader
+        :param theargs:
+        :return:
+        """
+        self._parse_config()
+        self._load_style_template()
+
+        data_dir_existed = self._check_if_data_dir_exists()
+
+        if self._args.skipdownload is False or data_dir_existed is False:
+            self._download_STRING_files()
+            self._unpack_STRING_files()
+
+
+        self._init_ensembl_ids()
+
+
+        #populate name - 4.display name -> becomes name
+        self._populate_display_names()
+
+
+
+
+        # populate alias - 3. node string id -> becomes alias, for example
+        # ensembl:ENSP00000000233|ncbigene:857
+
+        self._populate_aliases()
+
 
         logger.debug('Populating represents from {}...'.format(self._uniprot_file))
         row_count = 0

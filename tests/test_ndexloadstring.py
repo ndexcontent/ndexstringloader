@@ -394,57 +394,7 @@ class TestNdexstringloader(unittest.TestCase):
         self.assertDictEqual(style_template_actual.__dict__, style_template_expected.__dict__)
 
 
-    #@unittest.skip("skip it  now - uncomment later")
-    def test_0120_download_and_unzip(self):
-
-        entrez_url = \
-            'https://stringdb-static.org/mapping_files/entrez/human.entrez_2_string.2018.tsv.gz'
-
-        local_file_name = 'entrez.tsv'
-        local_downloaded_file_name_unzipped = self._args['datadir'] + '/' + local_file_name
-        local_downloaded_file_name_zipped = local_downloaded_file_name_unzipped + '.gz'
-
-        loader = NDExSTRINGLoader(self._args)
-
-        loader._download(entrez_url, local_downloaded_file_name_zipped)
-        self.assertTrue(os.path.exists(local_downloaded_file_name_zipped))
-
-        loader._unzip(local_downloaded_file_name_zipped)
-        self.assertTrue(os.path.exists(local_downloaded_file_name_unzipped))
-
-
-    #@unittest.skip("skip it  now - uncomment later")
-    def test_0130_download_and_unzip_STRING_files(self):
-
-        loader = NDExSTRINGLoader(self._args)
-
-        loader._download_STRING_files()
-
-        full_file = loader.__getattribute__('_full_file_name') + '.gz'
-        names_file = loader.__getattribute__('_names_file') + '.gz'
-        entrez_file = loader.__getattribute__('_entrez_file') + '.gz'
-        uniprot_file = loader.__getattribute__('_uniprot_file') + '.gz'
-
-        self.assertTrue(os.path.exists(full_file))
-        self.assertTrue(os.path.exists(names_file))
-        self.assertTrue(os.path.exists(entrez_file))
-        self.assertTrue(os.path.exists(uniprot_file))
-
-
-        loader._unpack_STRING_files()
-
-        full_file = loader.__getattribute__('_full_file_name')
-        names_file = loader.__getattribute__('_names_file')
-        entrez_file = loader.__getattribute__('_entrez_file')
-        uniprot_file = loader.__getattribute__('_uniprot_file')
-
-        self.assertTrue(os.path.exists(full_file))
-        self.assertTrue(os.path.exists(names_file))
-        self.assertTrue(os.path.exists(entrez_file))
-        self.assertTrue(os.path.exists(uniprot_file))
-
-
-    def test_0140_get_headers_headers_of_links_file(self):
+    def test_0120_get_headers_headers_of_links_file(self):
         header = [
             'protein1',
             'protein2',
@@ -481,7 +431,7 @@ class TestNdexstringloader(unittest.TestCase):
         self.assertEqual(header, header_actual)
 
 
-    def test_0150_init_ensembl_ids(self):
+    def test_0130_init_ensembl_ids(self):
         header = [
             'protein1',
             'protein2',
@@ -549,11 +499,252 @@ class TestNdexstringloader(unittest.TestCase):
 
 
 
+    def test_0140_populate_display_names(self):
+        links_header = [
+            'protein1',
+            'protein2',
+            'neighborhood',
+            'neighborhood_transferred',
+            'fusion',
+            'cooccurence',
+            'homology',
+            'coexpression',
+            'coexpression_transferred',
+            'experiments',
+            'experiments_transferred',
+            'database',
+            'database_transferred',
+            'textmining',
+            'textmining_transferred',
+            'combined_score'
+        ]
+        links_content = [
+            '9606.ENSP00000000233 9606.ENSP00000272298 0 0 0 332 0 0 62 0 181 0 0 0 125 490',
+            '9606.ENSP00000000233 9606.ENSP00000253401 0 0 0 0 0 0 0 0 186 0 0 0 56 198',
+            '9606.ENSP00000000233 9606.ENSP00000401445 0 0 0 0 0 0 0 0 160 0 0 0 0 159',
+            '9606.ENSP00000000233 9606.ENSP00000418915 0 0 0 0 0 0 61 0 158 0 0 542 0 606',
+            '9606.ENSP00000000233 9606.ENSP00000327801 0 0 0 0 0 69 61 0 78 0 0 0 89 167',
+            '9606.ENSP00000000233 9606.ENSP00000466298 0 0 0 0 0 141 0 0 131 0 0 0 98 267',
+            '9606.ENSP00000000233 9606.ENSP00000232564 0 0 0 0 0 0 62 0 171 0 0 0 56 201',
+            '9606.ENSP00000000233 9606.ENSP00000393379 0 0 0 0 0 0 61 0 131 0 0 0 43 150',
+            '9606.ENSP00000000233 9606.ENSP00000371253 0 0 0 0 0 0 61 0 0 0 0 0 224 240',
+            '9606.ENSP00000000233 9606.ENSP00000373713 0 0 0 0 0 0 63 0 63 0 0 0 237 271'
+        ]
+        links_header_str = ' '.join(links_header)
+
+        ensembl_ids_expected = {
+            '9606.ENSP00000000233': { 'display_name': 'ARF5', 'alias': None, 'represents': None },
+            '9606.ENSP00000272298': { 'display_name': 'CALM2', 'alias': None, 'represents': None },
+            '9606.ENSP00000253401': { 'display_name': 'ARHGEF9', 'alias': None, 'represents': None },
+            '9606.ENSP00000401445': { 'display_name': 'ERN1', 'alias': None, 'represents': None },
+            '9606.ENSP00000418915': { 'display_name': 'CDKN2A', 'alias': None, 'represents': None },
+            '9606.ENSP00000327801': { 'display_name': 'P4HB', 'alias': None, 'represents': None },
+            '9606.ENSP00000466298': { 'display_name': 'STX10', 'alias': None, 'represents': None },
+            '9606.ENSP00000232564': { 'display_name': 'GNB4', 'alias': None, 'represents': None },
+            '9606.ENSP00000393379': { 'display_name': 'KIF5C', 'alias': None, 'represents': None },
+            '9606.ENSP00000371253': { 'display_name': 'GART', 'alias': None, 'represents': None },
+            '9606.ENSP00000373713': { 'display_name': 'SACM1L', 'alias': None, 'represents': None }
+        }
+
+        #  names header is '# NCBI taxid / display name / STRING'
+        names_header = [
+            '# NCBI taxid',
+            'display name',
+            'STRING'
+        ]
+        names_header_str = ' / '.join(names_header)
+
+        # the last entry '9606\tARF55\t9606.ENSP00000000233' has the same id as the first
+        # '9606\tARF5\t9606.ENSP00000000233'; this should never happen in reality
+        names_content = [
+            '9606\tARF5\t9606.ENSP00000000233',
+            '9606\tCALM2\t9606.ENSP00000272298',
+            '9606\tARHGEF9\t9606.ENSP00000253401',
+            '9606\tERN1\t9606.ENSP00000401445',
+            '9606\tCDKN2A\t9606.ENSP00000418915',
+            '9606\tP4HB\t9606.ENSP00000327801',
+            '9606\tSTX10\t9606.ENSP00000466298',
+            '9606\tGNB4\t9606.ENSP00000232564',
+            '9606\tKIF5C\t9606.ENSP00000393379',
+            '9606\tGART\t9606.ENSP00000371253',
+            '9606\tSACM1L\t9606.ENSP00000373713',
+            '9606\tARF55\t9606.ENSP00000000233'
+        ]
+
+        temp_dir = self._args['datadir']
+        temp_links_file = os.path.join(temp_dir, '__temp_link_file__.txt')
+        temp_names_file = os.path.join(temp_dir, '__temp_name_file__.txt')
+
+        with open(temp_links_file, 'w') as f:
+            f.write(links_header_str + '\n')
+            for l in links_content:
+                f.write(l + '\n')
+            f.flush()
+
+        with open(temp_names_file, 'w') as f:
+            f.write(names_header_str + '\n')
+            for n in names_content:
+                f.write(n + '\n')
+            f.flush()
+
+
+        loader = NDExSTRINGLoader(self._args)
+        loader.__setattr__('_full_file_name', temp_links_file)
+        loader.__setattr__('_names_file', temp_names_file)
+
+        loader._init_ensembl_ids()
+
+        loader._populate_display_names()
+        ensembl_ids_actual = loader.__getattribute__(('ensembl_ids'))
+        self.assertEqual(ensembl_ids_expected, ensembl_ids_actual)
+
+        duplicate_names = loader.__getattribute__('duplicate_display_names')
+        self.assertEqual(duplicate_names, {'9606.ENSP00000000233': ['ARF5', 'ARF55']})
 
 
 
+    def test_0150_populate_aliases(self):
+        links_header = [
+            'protein1',
+            'protein2',
+            'neighborhood',
+            'neighborhood_transferred',
+            'fusion',
+            'cooccurence',
+            'homology',
+            'coexpression',
+            'coexpression_transferred',
+            'experiments',
+            'experiments_transferred',
+            'database',
+            'database_transferred',
+            'textmining',
+            'textmining_transferred',
+            'combined_score'
+        ]
+        links_content = [
+            '9606.ENSP00000000233 9606.ENSP00000253401 0 0 0 0 0 0 0 0 186 0 0 0 56 198',
+            '9606.ENSP00000000233 9606.ENSP00000401445 0 0 0 0 0 0 0 0 160 0 0 0 0 159',
+            '9606.ENSP00000000233 9606.ENSP00000418915 0 0 0 0 0 0 61 0 158 0 0 542 0 606',
+            '9606.ENSP00000000233 9606.ENSP00000327801 0 0 0 0 0 69 61 0 78 0 0 0 89 167',
+            '9606.ENSP00000000233 9606.ENSP00000466298 0 0 0 0 0 141 0 0 131 0 0 0 98 267',
+            '9606.ENSP00000000233 9606.ENSP00000232564 0 0 0 0 0 0 62 0 171 0 0 0 56 201',
+            '9606.ENSP00000000233 9606.ENSP00000393379 0 0 0 0 0 0 61 0 131 0 0 0 43 150',
+            '9606.ENSP00000000233 9606.ENSP00000371253 0 0 0 0 0 0 61 0 0 0 0 0 224 240',
+            '9606.ENSP00000000233 9606.ENSP00000373713 0 0 0 0 0 0 63 0 63 0 0 0 237 271'
+        ]
+        links_header_str = ' '.join(links_header)
+
+        ensembl_ids_expected = {
+            '9606.ENSP00000000233': { 'display_name': None, 'alias': 'ncbigene:381|ensembl:ENSP00000000233', 'represents': None },
+            '9606.ENSP00000253401': { 'display_name': None, 'alias': 'ncbigene:23229|ensembl:ENSP00000253401', 'represents': None },
+            '9606.ENSP00000401445': { 'display_name': None, 'alias': 'ncbigene:2081|ensembl:ENSP00000401445', 'represents': None },
+            '9606.ENSP00000418915': { 'display_name': None, 'alias': 'ncbigene:1029|ensembl:ENSP00000418915', 'represents': None },
+            '9606.ENSP00000327801': { 'display_name': None, 'alias': 'ncbigene:5034|ensembl:ENSP00000327801', 'represents': None },
+            '9606.ENSP00000466298': { 'display_name': None, 'alias': 'ncbigene:8677|ensembl:ENSP00000466298', 'represents': None },
+            '9606.ENSP00000232564': { 'display_name': None, 'alias': 'ncbigene:59345|ensembl:ENSP00000232564', 'represents': None },
+            '9606.ENSP00000393379': { 'display_name': None, 'alias': 'ncbigene:3800|ensembl:ENSP00000393379', 'represents': None },
+            '9606.ENSP00000371253': { 'display_name': None, 'alias': 'ncbigene:2618|ensembl:ENSP00000371253', 'represents': None },
+            '9606.ENSP00000373713': { 'display_name': None, 'alias': 'ncbigene:22908|ensembl:ENSP00000373713', 'represents': None }
+        }
+
+        #  entrez header is '# NCBI taxid / entrez / STRING'
+        entrez_header = [
+            '# NCBI taxid',
+            'entrez',
+            'STRING'
+        ]
+        entrez_header_str = ' / '.join(entrez_header)
+
+        entrez_content = [
+            '9606\t381\t9606.ENSP00000000233',
+            '9606\t23229\t9606.ENSP00000253401',
+            '9606\t2081\t9606.ENSP00000401445',
+            '9606\t1029\t9606.ENSP00000418915',
+            '9606\t5034\t9606.ENSP00000327801',
+            '9606\t8677\t9606.ENSP00000466298',
+            '9606\t59345\t9606.ENSP00000232564',
+            '9606\t3800\t9606.ENSP00000393379',
+            '9606\t2618\t9606.ENSP00000371253',
+            '9606\t22908\t9606.ENSP00000373713'
+        ]
+
+        temp_dir = self._args['datadir']
+        temp_links_file = os.path.join(temp_dir, '__temp_link_file__.txt')
+        temp_entrez_file = os.path.join(temp_dir, '__temp_entrez_file__.txt')
+
+        with open(temp_links_file, 'w') as f:
+            f.write(links_header_str + '\n')
+            for l in links_content:
+                f.write(l + '\n')
+            f.flush()
+
+        with open(temp_entrez_file, 'w') as f:
+            f.write(entrez_header_str + '\n')
+            for e in entrez_content:
+                f.write(e + '\n')
+            f.flush()
+
+
+        loader = NDExSTRINGLoader(self._args)
+        loader.__setattr__('_full_file_name', temp_links_file)
+        loader.__setattr__('_entrez_file', temp_entrez_file)
+
+        loader._init_ensembl_ids()
+
+        loader._populate_aliases()
+        self.maxDiff = None
+        self.assertEqual(ensembl_ids_expected, loader.__getattribute__('ensembl_ids'))
 
 
 
+    #@unittest.skip("skip it  now - uncomment later")
+    def test_0900_download_and_unzip(self):
+
+        entrez_url = \
+            'https://stringdb-static.org/mapping_files/entrez/human.entrez_2_string.2018.tsv.gz'
+
+        local_file_name = 'entrez.tsv'
+        local_downloaded_file_name_unzipped = self._args['datadir'] + '/' + local_file_name
+        local_downloaded_file_name_zipped = local_downloaded_file_name_unzipped + '.gz'
+
+        loader = NDExSTRINGLoader(self._args)
+
+        loader._download(entrez_url, local_downloaded_file_name_zipped)
+        self.assertTrue(os.path.exists(local_downloaded_file_name_zipped))
+
+        loader._unzip(local_downloaded_file_name_zipped)
+        self.assertTrue(os.path.exists(local_downloaded_file_name_unzipped))
+
+
+    #@unittest.skip("skip it  now - uncomment later")
+    def test_0910_download_and_unzip_STRING_files(self):
+
+        loader = NDExSTRINGLoader(self._args)
+
+        loader._download_STRING_files()
+
+        full_file = loader.__getattribute__('_full_file_name') + '.gz'
+        names_file = loader.__getattribute__('_names_file') + '.gz'
+        entrez_file = loader.__getattribute__('_entrez_file') + '.gz'
+        uniprot_file = loader.__getattribute__('_uniprot_file') + '.gz'
+
+        self.assertTrue(os.path.exists(full_file))
+        self.assertTrue(os.path.exists(names_file))
+        self.assertTrue(os.path.exists(entrez_file))
+        self.assertTrue(os.path.exists(uniprot_file))
+
+
+        loader._unpack_STRING_files()
+
+        full_file = loader.__getattribute__('_full_file_name')
+        names_file = loader.__getattribute__('_names_file')
+        entrez_file = loader.__getattribute__('_entrez_file')
+        uniprot_file = loader.__getattribute__('_uniprot_file')
+
+        self.assertTrue(os.path.exists(full_file))
+        self.assertTrue(os.path.exists(names_file))
+        self.assertTrue(os.path.exists(entrez_file))
+        self.assertTrue(os.path.exists(uniprot_file))
 
 
