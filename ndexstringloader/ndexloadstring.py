@@ -17,6 +17,7 @@ import requests
 import ndex2
 
 
+
 logger = logging.getLogger(__name__)
 
 STYLE = 'style.cx'
@@ -462,7 +463,7 @@ class NDExSTRINGLoader(object):
                         else:
                             alias_string = ncbi_gene_id_split[0] + ensembl_alias
 
-                            self.ensembl_ids[ensembl_id]['alias'] = alias_string
+                        self.ensembl_ids[ensembl_id]['alias'] = alias_string
 
                     else:
                         pass
@@ -496,7 +497,7 @@ class NDExSTRINGLoader(object):
                             self.duplicate_uniprot_ids[ensembl_id] = []
                             self.duplicate_uniprot_ids[ensembl_id].append(self.ensembl_ids[ensembl_id]['represents'])
 
-                            self.duplicate_uniprot_ids[ensembl_id].append(uniprot_id)
+                            self.duplicate_uniprot_ids[ensembl_id].append('uniprot:' + uniprot_id)
 
                 row_count = row_count + 1;
 

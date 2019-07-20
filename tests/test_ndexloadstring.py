@@ -15,6 +15,10 @@ from ndexstringloader import ndexloadstring
 
 import ndex2
 
+import json
+import pandas as pd
+import ndexutil.tsv.tsv2nicecx2 as t2n
+
 
 class Param(object):
     """
@@ -304,15 +308,18 @@ class TestNdexstringloader(unittest.TestCase):
         expected_package_dir = os.path.dirname(ndexstringloader.__file__)
         self.assertEqual(actual_package_dir, expected_package_dir)
 
+
     def test_0070_get_load_plan(self):
         actual_load_plan = ndexloadstring.get_load_plan()
         expected_load_plan = os.path.join(ndexloadstring.get_package_dir(), ndexloadstring.STRING_LOAD_PLAN)
         self.assertEqual(actual_load_plan, expected_load_plan)
 
+
     def test_0080_get_style(self):
         actual_style = ndexloadstring.get_style()
         expected_style = os.path.join(ndexloadstring.get_package_dir(), ndexloadstring.STYLE)
         self.assertEqual(actual_style, expected_style)
+
 
     def test_0090_parse_args(self):
         desc = """
@@ -498,7 +505,6 @@ class TestNdexstringloader(unittest.TestCase):
         self.assertEqual(ensembl_ids_expected, ensembl_ids_actual)
 
 
-
     def test_0140_populate_display_names(self):
         links_header = [
             'protein1',
@@ -602,7 +608,6 @@ class TestNdexstringloader(unittest.TestCase):
         self.assertEqual(duplicate_names, {'9606.ENSP00000000233': ['ARF5', 'ARF55']})
 
 
-
     def test_0150_populate_aliases(self):
         links_header = [
             'protein1',
@@ -631,7 +636,8 @@ class TestNdexstringloader(unittest.TestCase):
             '9606.ENSP00000000233 9606.ENSP00000232564 0 0 0 0 0 0 62 0 171 0 0 0 56 201',
             '9606.ENSP00000000233 9606.ENSP00000393379 0 0 0 0 0 0 61 0 131 0 0 0 43 150',
             '9606.ENSP00000000233 9606.ENSP00000371253 0 0 0 0 0 0 61 0 0 0 0 0 224 240',
-            '9606.ENSP00000000233 9606.ENSP00000373713 0 0 0 0 0 0 63 0 63 0 0 0 237 271'
+            '9606.ENSP00000000233 9606.ENSP00000373713 0 0 0 0 0 0 63 0 63 0 0 0 237 271',
+            '9606.ENSP00000000233 9606.ENSP00000479069 0 0 0 0 0 0 0 0 70 0 0 0 215 238'
         ]
         links_header_str = ' '.join(links_header)
 
@@ -645,7 +651,10 @@ class TestNdexstringloader(unittest.TestCase):
             '9606.ENSP00000232564': { 'display_name': None, 'alias': 'ncbigene:59345|ensembl:ENSP00000232564', 'represents': None },
             '9606.ENSP00000393379': { 'display_name': None, 'alias': 'ncbigene:3800|ensembl:ENSP00000393379', 'represents': None },
             '9606.ENSP00000371253': { 'display_name': None, 'alias': 'ncbigene:2618|ensembl:ENSP00000371253', 'represents': None },
-            '9606.ENSP00000373713': { 'display_name': None, 'alias': 'ncbigene:22908|ensembl:ENSP00000373713', 'represents': None }
+            '9606.ENSP00000373713': { 'display_name': None, 'alias': 'ncbigene:22908|ensembl:ENSP00000373713', 'represents': None },
+            '9606.ENSP00000479069': { 'display_name': None, \
+                                      'alias': 'ncbigene:101930165|ncbigene:105369241|ncbigene:728929|ensembl:ENSP00000479069', \
+                                      'represents': None }
         }
 
         #  entrez header is '# NCBI taxid / entrez / STRING'
@@ -666,7 +675,8 @@ class TestNdexstringloader(unittest.TestCase):
             '9606\t59345\t9606.ENSP00000232564',
             '9606\t3800\t9606.ENSP00000393379',
             '9606\t2618\t9606.ENSP00000371253',
-            '9606\t22908\t9606.ENSP00000373713'
+            '9606\t22908\t9606.ENSP00000373713',
+            '9606\t101930165|105369241|728929\t9606.ENSP00000479069'
         ]
 
         temp_dir = self._args['datadir']
@@ -694,6 +704,7 @@ class TestNdexstringloader(unittest.TestCase):
 
         loader._populate_aliases()
         self.maxDiff = None
+        eids = loader.__getattribute__('ensembl_ids')
         self.assertEqual(ensembl_ids_expected, loader.__getattribute__('ensembl_ids'))
 
 
@@ -782,6 +793,177 @@ class TestNdexstringloader(unittest.TestCase):
         loader._populate_represents()
         self.maxDiff = None
         self.assertEqual(ensembl_ids_expected, loader.__getattribute__('ensembl_ids'))
+
+
+
+        os.remove(temp_uniprot_file)
+
+        # test for unlikely situation when one key maps to different Unirpot IDs:
+        # the first two entries have the same id 9606.ENSP00000000233
+        # mapping to different Uniprot IDs - this should never happen in reality though
+        uniprot_content_duplicate_ids = [
+            '9606\tP84085|ARF5_HUMAN\t9606.ENSP00000000233\t100.0\t374.0',
+            '9606\tO43307|ARHG9_HUMAN\t9606.ENSP00000000233\t100.0\t1078.0',
+            '9606\tO75460|ERN1_HUMAN\t9606.ENSP00000401445\t100.0\t2028.0'
+        ]
+        with open(temp_uniprot_file, 'w') as f:
+            for u in uniprot_content_duplicate_ids:
+                f.write(u + '\n')
+            f.flush()
+
+        loader._init_ensembl_ids()
+        loader._populate_represents()
+        duplicate_uniprot_ids = loader.__getattribute__('duplicate_uniprot_ids')
+        self.assertEqual({'9606.ENSP00000000233': ['uniprot:P84085', 'uniprot:O43307']}, duplicate_uniprot_ids)
+
+
+    def test_0170_get_name_rep_alias(self):
+
+        ensembl_ids = {
+            '9606.ENSP00000216181': {
+                'display_name': None,
+                'represents': None,
+                'alias': None
+            },
+            '9606.ENSP00000238651': {
+                'display_name': 'ACOT2',
+                'represents': None,
+                'alias': 'ncbigene:10965|ensembl:ENSP00000238651'
+            },
+            '9606.ENSP00000242462': {
+                'display_name': 'NEUROG3',
+                'represents': 'uniprot:Q9Y4Z2',
+                'alias': None
+            },
+            '9606.ENSP00000268876': {
+                'display_name': None,
+                'represents': 'uniprot:Q8IWX7',
+                'alias': 'ncbigene:146862|ensembl:ENSP00000268876'
+            },
+            '9606.ENSP00000276480': {
+                'display_name': 'ST18',
+                'represents': 'uniprot:O60284',
+                'alias': 'ncbigene:9705|ensembl:ENSP00000276480'
+            },
+            '9606.ENSP00000364486': {
+                'display_name': 'FBP2',
+                'represents': 'uniprot:O00757',
+                'alias': 'ncbigene:8789|ensembl:ENSP00000364486',
+            }
+        }
+
+        represents_expected = {
+            '9606.ENSP00000216181': 'ensembl:ENSP00000216181\tensembl:ENSP00000216181\tensembl:ENSP00000216181',
+            '9606.ENSP00000238651': 'ACOT2\thgnc:ACOT2\tncbigene:10965|ensembl:ENSP00000238651',
+            '9606.ENSP00000242462': 'NEUROG3\tuniprot:Q9Y4Z2\tuniprot:Q9Y4Z2',
+            '9606.ENSP00000268876': 'ensembl:ENSP00000268876\tuniprot:Q8IWX7\tncbigene:146862|ensembl:ENSP00000268876',
+            '9606.ENSP00000276480': 'ST18\tuniprot:O60284\tncbigene:9705|ensembl:ENSP00000276480',
+            '9606.ENSP00000364486': 'FBP2\tuniprot:O00757\tncbigene:8789|ensembl:ENSP00000364486'
+        }
+
+        string_loader = NDExSTRINGLoader(self._args)
+        string_loader.__setattr__('ensembl_ids', ensembl_ids)
+
+        for key, value in ensembl_ids.items():
+            name_rep_alias = string_loader._get_name_rep_alias(key)
+            self.assertEqual(name_rep_alias, represents_expected[key])
+
+
+    def test_0180_create_NDEx_connection(self):
+        loader = NDExSTRINGLoader(self._args)
+
+        user_name = 'aaa'
+        password = 'aaa'
+        server = 'dev.ndexbio.org'
+
+        loader.__setattr__('_pass', password)
+        loader.__setattr__('_server', server)
+        ndex_client = loader.create_ndex_connection()
+        self.assertIsNone(ndex_client)
+
+        loader.__setattr__('_user', 'aaa')
+        ndex_client = loader.create_ndex_connection()
+        self.assertIsNotNone(ndex_client)
+
+        user_obj = ndex_client.get_user_by_username(user_name)
+        self.assertTrue(len(user_obj) == 15)
+
+
+    def test_0190_generate_CX_file(self):
+
+        tsv_header = [
+            'name1',
+            'represents1',
+            'alias1',
+            'name2',
+            'represents2',
+            'alias2'
+            'neighborhood',
+            'neighborhood_transferred',
+            'fusion',
+            'cooccurence',
+            'homology',
+            'coexpression',
+            'coexpression_transferred',
+            'experiments',
+            'experiments_transferred',
+            'database',
+            'database_transferred',
+            'textmining',
+            'textmining_transferred',
+            'combined_score'
+        ]
+
+        tsv_header_str = '\t'.join(tsv_header) + '\n'
+
+        tsv_body = [
+            'VCL\tuniprot:P18206\tncbigene:7414|ensembl:ENSP00000211998\tTLN1\tuniprot:Q9Y490\tncbigene:7094|ensembl:ENSP00000316029\t0\t0\t0\t0\t0\t106\t82\t870\t809\t900\t0\t701\t538\t999',
+            'VCL\tuniprot:P18206\tncbigene:7414|ensembl:ENSP00000211998\tPXN\tuniprot:P49023\tncbigene:5829|ensembl:ENSP00000267257\t0\t0\t0\t0\t0\t76\t63\t888\t377\t900\t0\t957\t534\t999',
+            'VCL\tuniprot:P18206\tncbigene:7414|ensembl:ENSP00000211998\tACTN1\tuniprot:P12814\tncbigene:87|ensembl:ENSP00000377941\t0\t0\t0\t0\t0\t242\t81\t870\t809\t900\t0\t556\t504\t999'
+        ]
+
+        temp_dir = self._args['datadir']
+        temp_links_tsv_file = os.path.join(temp_dir, '__protein_links_tmp__.tsv')
+        temp_cx_network = os.path.join(temp_dir, '__networks__.cx')
+
+
+        with open(temp_links_tsv_file, 'w') as f:
+            f.write(tsv_header_str)
+            for t in tsv_body:
+                f.write(t + '\n')
+            f.flush()
+
+
+        self._args.style = ndexloadstring.get_style()
+        loader = NDExSTRINGLoader(self._args)
+
+        loader.__setattr__('_output_tsv_file_name', temp_links_tsv_file)
+        loader.__setattr__('_cx_network', temp_cx_network)
+        loader.__setattr__('_load_plan', ndexloadstring.get_load_plan())
+        loader._load_style_template()
+
+
+        network_attributes = loader._init_network_attributes()
+        loader._generate_CX_file(network_attributes)
+
+        dataframe = pd.read_csv(temp_links_tsv_file,
+                                dtype=str,
+                                na_filter=False,
+                                delimiter='\t',
+                                engine='python')
+
+        with open(ndexloadstring.get_load_plan(), 'r') as lp:
+            plan = json.load(lp)
+
+
+        network_in_nice_cx = t2n.convert_pandas_to_nice_cx_with_load_plan(dataframe, plan)
+
+        nice_cx_path = ndexloadstring.get_package_dir() + '/../tests/network.cx'
+
+        network_sample_in_nice_cx = ndex2.create_nice_cx_from_file(nice_cx_path)
+
+        self.assertDictEqual(network_in_nice_cx.__dict__,
+                             network_sample_in_nice_cx.__dict__)
 
 
     #@unittest.skip("skip it  now - uncomment later")
