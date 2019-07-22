@@ -19,6 +19,7 @@ import json
 import pandas as pd
 import ndexutil.tsv.tsv2nicecx2 as t2n
 
+import time
 
 class Param(object):
     """
@@ -52,6 +53,7 @@ class TestNdexstringloader(unittest.TestCase):
         }
 
         self._args = dotdict(self._args)
+        self._network_name = 'Network for Junit Testing STRING Loader - delete it'
 
 
     def tearDown(self):
@@ -944,26 +946,92 @@ class TestNdexstringloader(unittest.TestCase):
 
 
         network_attributes = loader._init_network_attributes()
+        network_attributes['name'] = self._network_name
+
         loader._generate_CX_file(network_attributes)
 
-        dataframe = pd.read_csv(temp_links_tsv_file,
-                                dtype=str,
-                                na_filter=False,
-                                delimiter='\t',
-                                engine='python')
+        network_in_nice_cx_1 = ndex2.create_nice_cx_from_file(temp_cx_network)
 
-        with open(ndexloadstring.get_load_plan(), 'r') as lp:
-            plan = json.load(lp)
+        nice_cx_path = ndexloadstring.get_package_dir() + '/../tests/test_network.cx'
+        #with open(nice_cx_path, 'w') as f:
+        #    f.write(json.dumps(network_in_nice_cx_1.to_cx(), indent=4))
+
+        network_in_nice_cx_2 = ndex2.create_nice_cx_from_file(nice_cx_path)
+
+        dict_1 = network_in_nice_cx_1.__dict__
+        dict_2 = network_in_nice_cx_2.__dict__
+
+        self.maxDiff = None
+        self.assertDictEqual(dict_1, dict_2)
 
 
-        network_in_nice_cx = t2n.convert_pandas_to_nice_cx_with_load_plan(dataframe, plan)
+    def test_0200_load_or_update_network_on_server(self):
+        user_name = 'aaa'
+        password = 'aaa'
+        server = 'dev.ndexbio.org'
 
-        nice_cx_path = ndexloadstring.get_package_dir() + '/../tests/network.cx'
+        loader = NDExSTRINGLoader(self._args)
+        loader.__setattr__('_user', 'aaa')
+        loader.__setattr__('_pass', password)
+        loader.__setattr__('_server', server)
 
-        network_sample_in_nice_cx = ndex2.create_nice_cx_from_file(nice_cx_path)
 
-        self.assertDictEqual(network_in_nice_cx.__dict__,
-                             network_sample_in_nice_cx.__dict__)
+        nice_cx_path = ndexloadstring.get_package_dir() + '/../tests/test_network.cx'
+        loader.__setattr__('_cx_network', nice_cx_path)
+
+        # NDex client connection
+        ndex_client = loader.create_ndex_connection()
+
+        # delete all networks with the given name on NDEx server
+        network_UUID = loader.get_network_uuid(self._network_name)
+        while network_UUID and network_UUID != 2:
+            ndex_client.delete_network(network_UUID)
+            network_UUID = loader.get_network_uuid(self._network_name)
+
+
+        # upload networks to the server 4 times
+        loader._load_or_update_network_on_server('test network')
+        loader._load_or_update_network_on_server('test network')
+        loader._load_or_update_network_on_server('test network')
+        loader._load_or_update_network_on_server('test network')
+
+        network_UUID = loader.get_network_uuid(self._network_name)
+
+
+        count = 0
+        # now delete all the uploaded networks - there should be 4 of them
+        while network_UUID and network_UUID != 2:
+            ndex_client.delete_network(network_UUID)
+            network_UUID = loader.get_network_uuid(self._network_name)
+            count += 1
+
+        self.assertEqual(count, 4)
+
+
+        # now upload network, and update it (overwrite it) on the server
+        time.sleep(1)
+        loader._load_or_update_network_on_server('test network')
+        time.sleep(1)
+        network_UUID = loader.get_network_uuid(self._network_name)
+
+
+        time.sleep(1)
+        loader._load_or_update_network_on_server('test network', network_UUID)
+        for i in range (0, 4):
+            # over-write/update the existing network 4 times
+            time.sleep(1)
+            loader._load_or_update_network_on_server('test network', network_UUID)
+
+        count = 0
+        while network_UUID and network_UUID != 2:
+            ndex_client.delete_network(network_UUID)
+            network_UUID = loader.get_network_uuid(self._network_name)
+            count += 1
+
+        # there should only be one network this time
+        self.assertEqual(count, 1)
+
+
 
 
     #@unittest.skip("skip it  now - uncomment later")

@@ -610,7 +610,7 @@ class NDExSTRINGLoader(object):
 
 
 
-    def _load_or_update_network_on_server(self, network_name, network_id):
+    def _load_or_update_network_on_server(self, network_name, network_id=None):
 
         logger.debug('updating network {} on server {} for user {}...'.format(network_name,
                                                                               self._server,
@@ -651,7 +651,7 @@ class NDExSTRINGLoader(object):
         try:
             network_summaries = self._ndex.get_network_summaries_for_user(self._user)
         except Exception as e:
-            return None
+            return 2
 
         for summary in network_summaries:
             network_name_1 = summary.get('name')
