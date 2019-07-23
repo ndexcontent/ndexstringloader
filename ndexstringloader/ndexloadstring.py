@@ -611,7 +611,7 @@ class NDExSTRINGLoader(object):
 
 
     def _load_or_update_network_on_server(self, network_name, network_id=None):
-
+        ret_code = 0
         logger.debug('updating network {} on server {} for user {}...'.format(network_name,
                                                                               self._server,
                                                                               self._user))
@@ -626,11 +626,12 @@ class NDExSTRINGLoader(object):
 
             except Exception as e:
                 logger.error('server returned error: {}\n'.format(e))
+                ret_code = 2
             else:
                 logger.info('network {} {} on server {} for user {}\n'.format(network_name, action,
                                                                                 self._server,
                                                                                 self._user))
-        return
+        return ret_code
 
 
     def create_ndex_connection(self):

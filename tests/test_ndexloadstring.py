@@ -1032,6 +1032,20 @@ class TestNdexstringloader(unittest.TestCase):
         self.assertEqual(count, 1)
 
 
+        # try to get network UUID for a non-existant user; we expect to receive 2 from get_network_uuid()
+        loader.__setattr__('_user', '_no_exists_')
+        ret_code = loader.get_network_uuid('test network')
+        self.assertEqual(ret_code, 2)
+
+        # try to create network for non-existant user; we expect to receive 2 from _load_or_update_network_on_server()
+        ndex_client.__setattr__('username', '_no_exists_')
+        ret_code = loader._load_or_update_network_on_server('test network')
+        self.assertEqual(ret_code, 2)
+
+
+
+
+
 
 
     #@unittest.skip("skip it  now - uncomment later")
