@@ -971,7 +971,7 @@ class TestNdexstringloader(unittest.TestCase):
         server = 'dev.ndexbio.org'
 
         loader = NDExSTRINGLoader(self._args)
-        loader.__setattr__('_user', 'aaa')
+        loader.__setattr__('_user', user_name)
         loader.__setattr__('_pass', password)
         loader.__setattr__('_server', server)
 
@@ -1043,8 +1043,79 @@ class TestNdexstringloader(unittest.TestCase):
         self.assertEqual(ret_code, 2)
 
 
+    def test_0210_load_to_NDEx(self):
+        user_name = 'aaa'
+        password = 'aaa'
+        server = 'dev.ndexbio.org'
+
+        loader = NDExSTRINGLoader(self._args)
+        loader.__setattr__('_pass', password)
+        loader.__setattr__('_server', server)
 
 
+        self._args.style = ndexloadstring.get_style()
+
+        # no user name was set - load_to_NDEx() is expected to fail to create connection with NDEx server
+        ret_code = loader.load_to_NDEx()
+        self.assertEqual(ret_code, 2)
+
+        loader.__setattr__('_user', user_name)
+
+        # _cutoffscore is not used in this test for filtering rows of initial file, it is used for generating network name
+        loader.__setattr__('_cutoffscore', '0.999')
+
+        tsv_header = [
+            'name1',
+            'represents1',
+            'alias1',
+            'name2',
+            'represents2',
+            'alias2'
+            'neighborhood',
+            'neighborhood_transferred',
+            'fusion',
+            'cooccurence',
+            'homology',
+            'coexpression',
+            'coexpression_transferred',
+            'experiments',
+            'experiments_transferred',
+            'database',
+            'database_transferred',
+            'textmining',
+            'textmining_transferred',
+            'combined_score'
+        ]
+
+        tsv_header_str = '\t'.join(tsv_header) + '\n'
+
+        tsv_body = [
+            'VCL\tuniprot:P18206\tncbigene:7414|ensembl:ENSP00000211998\tTLN1\tuniprot:Q9Y490\tncbigene:7094|ensembl:ENSP00000316029\t0\t0\t0\t0\t0\t106\t82\t870\t809\t900\t0\t701\t538\t999',
+            'VCL\tuniprot:P18206\tncbigene:7414|ensembl:ENSP00000211998\tPXN\tuniprot:P49023\tncbigene:5829|ensembl:ENSP00000267257\t0\t0\t0\t0\t0\t76\t63\t888\t377\t900\t0\t957\t534\t999',
+            'VCL\tuniprot:P18206\tncbigene:7414|ensembl:ENSP00000211998\tACTN1\tuniprot:P12814\tncbigene:87|ensembl:ENSP00000377941\t0\t0\t0\t0\t0\t242\t81\t870\t809\t900\t0\t556\t504\t999'
+        ]
+
+        temp_dir = self._args['datadir']
+        temp_links_tsv_file = os.path.join(temp_dir, '__protein_links_tmp__.tsv')
+        temp_cx_network = os.path.join(temp_dir, '__networks__.cx')
+
+
+        with open(temp_links_tsv_file, 'w') as f:
+            f.write(tsv_header_str)
+            for t in tsv_body:
+                f.write(t + '\n')
+            f.flush()
+
+        self._args.style = ndexloadstring.get_style()
+
+        loader.__setattr__('_output_tsv_file_name', temp_links_tsv_file)
+        loader.__setattr__('_cx_network', temp_cx_network)
+        loader.__setattr__('_load_plan', ndexloadstring.get_load_plan())
+
+        loader._load_style_template()
+
+        ret_code = loader.load_to_NDEx()
+        self.assertEqual(ret_code, 0)
 
 
 

@@ -677,7 +677,7 @@ class NDExSTRINGLoader(object):
 
         network_id = self.get_network_uuid(network_name)
 
-        self._load_or_update_network_on_server(network_name, network_id)
+        return self._load_or_update_network_on_server(network_name, network_id)
 
 
 
