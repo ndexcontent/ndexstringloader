@@ -350,7 +350,6 @@ class TestNdexstringloader(unittest.TestCase):
         args = []
         args.append('--cutoffscore')
         args.append('0.75')
-        args.append('--datadir')
         args.append(temp_dir)
 
         expected_args = {}

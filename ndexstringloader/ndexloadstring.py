@@ -66,9 +66,9 @@ def _parse_arguments(desc, args):
     parser = argparse.ArgumentParser(description=desc,
                                      formatter_class=help_fm)
 
-    parser.add_argument('--datadir', help='Directory where string '
+    parser.add_argument('datadir', help='Directory where string '
                                         'data is downloaded to '
-                                        'and processed from', required=True)
+                                        'and processed from')
     parser.add_argument('--profile', help='Profile in configuration '
                                           'file to load '
                                           'NDEx credentials which means'
@@ -368,7 +368,7 @@ class NDExSTRINGLoader(object):
 
         if not os.path.exists(self._datadir):
             data_dir_existed = False
-            os.makedirs(self._datadir)
+            os.makedirs(self._datadir, mode=0o755)
 
         return data_dir_existed
 
