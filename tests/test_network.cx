@@ -1,0 +1,617 @@
+[
+    {
+        "numberVerification": [
+            {
+                "longNumber": 281474976710655
+            }
+        ]
+    },
+    {
+        "metaData": [
+            {
+                "name": "nodes",
+                "elementCount": 4,
+                "idCounter": 4,
+                "version": "1.0",
+                "consistencyGroup": 1,
+                "properties": []
+            },
+            {
+                "name": "edges",
+                "elementCount": 3,
+                "idCounter": 3,
+                "version": "1.0",
+                "consistencyGroup": 1,
+                "properties": []
+            },
+            {
+                "name": "networkAttributes",
+                "elementCount": 12,
+                "idCounter": 12,
+                "version": "1.0",
+                "consistencyGroup": 1,
+                "properties": []
+            },
+            {
+                "name": "nodeAttributes",
+                "elementCount": 5,
+                "idCounter": 5,
+                "version": "1.0",
+                "consistencyGroup": 1,
+                "properties": []
+            },
+            {
+                "name": "edgeAttributes",
+                "elementCount": 39,
+                "idCounter": 39,
+                "version": "1.0",
+                "consistencyGroup": 1,
+                "properties": []
+            },
+            {
+                "name": "cyVisualProperties",
+                "elementCount": 3,
+                "idCounter": 4,
+                "properties": []
+            }
+        ]
+    },
+    {
+        "nodes": [
+            {
+                "@id": 0,
+                "n": "VCL",
+                "r": "uniprot:P18206"
+            },
+            {
+                "@id": 1,
+                "n": "TLN1",
+                "r": "uniprot:Q9Y490"
+            },
+            {
+                "@id": 2,
+                "n": "PXN",
+                "r": "uniprot:P49023"
+            },
+            {
+                "@id": 3,
+                "n": "ACTN1",
+                "r": "uniprot:P12814"
+            }
+        ]
+    },
+    {
+        "edges": [
+            {
+                "@id": 0,
+                "s": 0,
+                "t": 1,
+                "i": "interacts-with"
+            },
+            {
+                "@id": 1,
+                "s": 0,
+                "t": 2,
+                "i": "interacts-with"
+            },
+            {
+                "@id": 2,
+                "s": 0,
+                "t": 3,
+                "i": "interacts-with"
+            }
+        ]
+    },
+    {
+        "networkAttributes": [
+            {
+                "n": "@context",
+                "v": "{\"ncbigene\": \"http://identifiers.org/ncbigene/\", \"uniprot\": \"http://identifiers.org/uniprot/\", \"ensembl\": \"http://identifiers.org/ensembl/\"}"
+            },
+            {
+                "n": "name",
+                "v": "Network for Junit Testing STRING Loader - delete it"
+            },
+            {
+                "n": "description",
+                "v": "<br>This network contains high confidence (score >= 0.7) human protein links with combined scores. Edge color was mapped to the combined score value using a gradient from light grey (low Score) to black (high Score)."
+            },
+            {
+                "n": "rights",
+                "v": "Attribution 4.0 International (CC BY 4.0)"
+            },
+            {
+                "n": "rightsHolder",
+                "v": "STRING CONSORTIUM"
+            },
+            {
+                "n": "version",
+                "v": "11.0"
+            },
+            {
+                "n": "organism",
+                "v": "Homo sapiens (human)"
+            },
+            {
+                "n": "networkType",
+                "v": [
+                    "interactome",
+                    "ppi"
+                ],
+                "d": "list_of_string"
+            },
+            {
+                "n": "reference",
+                "v": "<p>Szklarczyk D, Morris JH, Cook H, Kuhn M, Wyder S, Simonovic M, Santos A, Doncheva NT, Roth A, Bork P, Jensen LJ, von Mering C.<br><b> The STRING database in 2017: quality-controlled protein-protein association networks, made broadly accessible.</b><br>Nucleic Acids Res. 2017 Jan; 45:D362-68.<br> <a target=\"_blank\" href=\"https://doi.org/10.1093/nar/gkw937\">DOI:10.1093/nar/gkw937</a></p>"
+            },
+            {
+                "n": "prov:wasDerivedFrom",
+                "v": "https://stringdb-static.org/download/protein.links.full.v11.0/9606.protein.links.full.v11.0.txt.gz"
+            },
+            {
+                "n": "prov:wasGeneratedBy",
+                "v": "<a href=\"https://github.com/ndexcontent/ndexstringloader\" target=\"_blank\">ndexstringloader 0.1.0</a>"
+            },
+            {
+                "n": "__iconurl",
+                "v": "https://home.ndexbio.org/img/STRING-logo.png"
+            }
+        ]
+    },
+    {
+        "nodeAttributes": [
+            {
+                "n": "type",
+                "v": "protein",
+                "po": 0
+            },
+            {
+                "n": "alias",
+                "v": [
+                    "ncbigene:7414",
+                    "ensembl:ENSP00000211998"
+                ],
+                "d": "list_of_string",
+                "po": 0
+            },
+            {
+                "n": "type",
+                "v": "protein",
+                "po": 1
+            },
+            {
+                "n": "type",
+                "v": "protein",
+                "po": 2
+            },
+            {
+                "n": "type",
+                "v": "protein",
+                "po": 3
+            }
+        ]
+    },
+    {
+        "edgeAttributes": [
+            {
+                "n": "neighborhood_transferred",
+                "v": 0.0,
+                "d": "double",
+                "po": 0
+            },
+            {
+                "n": "fusion",
+                "v": 0.0,
+                "d": "double",
+                "po": 0
+            },
+            {
+                "n": "cooccurence",
+                "v": 0.0,
+                "d": "double",
+                "po": 0
+            },
+            {
+                "n": "homology",
+                "v": 0.0,
+                "d": "double",
+                "po": 0
+            },
+            {
+                "n": "coexpression",
+                "v": 0.0,
+                "d": "double",
+                "po": 0
+            },
+            {
+                "n": "coexpression_transferred",
+                "v": 106.0,
+                "d": "double",
+                "po": 0
+            },
+            {
+                "n": "experiments",
+                "v": 82.0,
+                "d": "double",
+                "po": 0
+            },
+            {
+                "n": "experiments_transferred",
+                "v": 870.0,
+                "d": "double",
+                "po": 0
+            },
+            {
+                "n": "database",
+                "v": 809.0,
+                "d": "double",
+                "po": 0
+            },
+            {
+                "n": "database_transferred",
+                "v": 900.0,
+                "d": "double",
+                "po": 0
+            },
+            {
+                "n": "textmining",
+                "v": 0.0,
+                "d": "double",
+                "po": 0
+            },
+            {
+                "n": "textmining_transferred",
+                "v": 701.0,
+                "d": "double",
+                "po": 0
+            },
+            {
+                "n": "combined_score",
+                "v": 538.0,
+                "d": "double",
+                "po": 0
+            },
+            {
+                "n": "neighborhood_transferred",
+                "v": 0.0,
+                "d": "double",
+                "po": 1
+            },
+            {
+                "n": "fusion",
+                "v": 0.0,
+                "d": "double",
+                "po": 1
+            },
+            {
+                "n": "cooccurence",
+                "v": 0.0,
+                "d": "double",
+                "po": 1
+            },
+            {
+                "n": "homology",
+                "v": 0.0,
+                "d": "double",
+                "po": 1
+            },
+            {
+                "n": "coexpression",
+                "v": 0.0,
+                "d": "double",
+                "po": 1
+            },
+            {
+                "n": "coexpression_transferred",
+                "v": 76.0,
+                "d": "double",
+                "po": 1
+            },
+            {
+                "n": "experiments",
+                "v": 63.0,
+                "d": "double",
+                "po": 1
+            },
+            {
+                "n": "experiments_transferred",
+                "v": 888.0,
+                "d": "double",
+                "po": 1
+            },
+            {
+                "n": "database",
+                "v": 377.0,
+                "d": "double",
+                "po": 1
+            },
+            {
+                "n": "database_transferred",
+                "v": 900.0,
+                "d": "double",
+                "po": 1
+            },
+            {
+                "n": "textmining",
+                "v": 0.0,
+                "d": "double",
+                "po": 1
+            },
+            {
+                "n": "textmining_transferred",
+                "v": 957.0,
+                "d": "double",
+                "po": 1
+            },
+            {
+                "n": "combined_score",
+                "v": 534.0,
+                "d": "double",
+                "po": 1
+            },
+            {
+                "n": "neighborhood_transferred",
+                "v": 0.0,
+                "d": "double",
+                "po": 2
+            },
+            {
+                "n": "fusion",
+                "v": 0.0,
+                "d": "double",
+                "po": 2
+            },
+            {
+                "n": "cooccurence",
+                "v": 0.0,
+                "d": "double",
+                "po": 2
+            },
+            {
+                "n": "homology",
+                "v": 0.0,
+                "d": "double",
+                "po": 2
+            },
+            {
+                "n": "coexpression",
+                "v": 0.0,
+                "d": "double",
+                "po": 2
+            },
+            {
+                "n": "coexpression_transferred",
+                "v": 242.0,
+                "d": "double",
+                "po": 2
+            },
+            {
+                "n": "experiments",
+                "v": 81.0,
+                "d": "double",
+                "po": 2
+            },
+            {
+                "n": "experiments_transferred",
+                "v": 870.0,
+                "d": "double",
+                "po": 2
+            },
+            {
+                "n": "database",
+                "v": 809.0,
+                "d": "double",
+                "po": 2
+            },
+            {
+                "n": "database_transferred",
+                "v": 900.0,
+                "d": "double",
+                "po": 2
+            },
+            {
+                "n": "textmining",
+                "v": 0.0,
+                "d": "double",
+                "po": 2
+            },
+            {
+                "n": "textmining_transferred",
+                "v": 556.0,
+                "d": "double",
+                "po": 2
+            },
+            {
+                "n": "combined_score",
+                "v": 504.0,
+                "d": "double",
+                "po": 2
+            }
+        ]
+    },
+    {
+        "cyVisualProperties": [
+            {
+                "properties_of": "network",
+                "properties": {
+                    "NETWORK_ANNOTATION_SELECTION": "false",
+                    "NETWORK_BACKGROUND_PAINT": "#FFFFFF",
+                    "NETWORK_CENTER_X_LOCATION": "0.0",
+                    "NETWORK_CENTER_Y_LOCATION": "0.0",
+                    "NETWORK_CENTER_Z_LOCATION": "0.0",
+                    "NETWORK_DEPTH": "0.0",
+                    "NETWORK_EDGE_SELECTION": "true",
+                    "NETWORK_HEIGHT": "400.0",
+                    "NETWORK_NODE_SELECTION": "true",
+                    "NETWORK_SCALE_FACTOR": "1.0",
+                    "NETWORK_SIZE": "550.0",
+                    "NETWORK_WIDTH": "550.0"
+                }
+            },
+            {
+                "properties_of": "nodes:default",
+                "properties": {
+                    "COMPOUND_NODE_PADDING": "10.0",
+                    "COMPOUND_NODE_SHAPE": "ROUND_RECTANGLE",
+                    "NODE_BORDER_PAINT": "#666666",
+                    "NODE_BORDER_STROKE": "SOLID",
+                    "NODE_BORDER_TRANSPARENCY": "255",
+                    "NODE_BORDER_WIDTH": "0.0",
+                    "NODE_CUSTOMGRAPHICS_1": "org.cytoscape.ding.customgraphics.NullCustomGraphics,0,[ Remove Graphics ],",
+                    "NODE_CUSTOMGRAPHICS_2": "org.cytoscape.ding.customgraphics.NullCustomGraphics,0,[ Remove Graphics ],",
+                    "NODE_CUSTOMGRAPHICS_3": "org.cytoscape.ding.customgraphics.NullCustomGraphics,0,[ Remove Graphics ],",
+                    "NODE_CUSTOMGRAPHICS_4": "org.cytoscape.ding.customgraphics.NullCustomGraphics,0,[ Remove Graphics ],",
+                    "NODE_CUSTOMGRAPHICS_5": "org.cytoscape.ding.customgraphics.NullCustomGraphics,0,[ Remove Graphics ],",
+                    "NODE_CUSTOMGRAPHICS_6": "org.cytoscape.ding.customgraphics.NullCustomGraphics,0,[ Remove Graphics ],",
+                    "NODE_CUSTOMGRAPHICS_7": "org.cytoscape.ding.customgraphics.NullCustomGraphics,0,[ Remove Graphics ],",
+                    "NODE_CUSTOMGRAPHICS_8": "org.cytoscape.ding.customgraphics.NullCustomGraphics,0,[ Remove Graphics ],",
+                    "NODE_CUSTOMGRAPHICS_9": "org.cytoscape.ding.customgraphics.NullCustomGraphics,0,[ Remove Graphics ],",
+                    "NODE_CUSTOMGRAPHICS_POSITION_1": "C,C,c,0.00,0.00",
+                    "NODE_CUSTOMGRAPHICS_POSITION_2": "C,C,c,0.00,0.00",
+                    "NODE_CUSTOMGRAPHICS_POSITION_3": "C,C,c,0.00,0.00",
+                    "NODE_CUSTOMGRAPHICS_POSITION_4": "C,C,c,0.00,0.00",
+                    "NODE_CUSTOMGRAPHICS_POSITION_5": "C,C,c,0.00,0.00",
+                    "NODE_CUSTOMGRAPHICS_POSITION_6": "C,C,c,0.00,0.00",
+                    "NODE_CUSTOMGRAPHICS_POSITION_7": "C,C,c,0.00,0.00",
+                    "NODE_CUSTOMGRAPHICS_POSITION_8": "C,C,c,0.00,0.00",
+                    "NODE_CUSTOMGRAPHICS_POSITION_9": "C,C,c,0.00,0.00",
+                    "NODE_CUSTOMGRAPHICS_SIZE_1": "0.0",
+                    "NODE_CUSTOMGRAPHICS_SIZE_2": "0.0",
+                    "NODE_CUSTOMGRAPHICS_SIZE_3": "0.0",
+                    "NODE_CUSTOMGRAPHICS_SIZE_4": "0.0",
+                    "NODE_CUSTOMGRAPHICS_SIZE_5": "0.0",
+                    "NODE_CUSTOMGRAPHICS_SIZE_6": "0.0",
+                    "NODE_CUSTOMGRAPHICS_SIZE_7": "0.0",
+                    "NODE_CUSTOMGRAPHICS_SIZE_8": "0.0",
+                    "NODE_CUSTOMGRAPHICS_SIZE_9": "0.0",
+                    "NODE_CUSTOMPAINT_1": "DefaultVisualizableVisualProperty(id=NODE_CUSTOMPAINT_1, name=Node Custom Paint 1)",
+                    "NODE_CUSTOMPAINT_2": "DefaultVisualizableVisualProperty(id=NODE_CUSTOMPAINT_2, name=Node Custom Paint 2)",
+                    "NODE_CUSTOMPAINT_3": "DefaultVisualizableVisualProperty(id=NODE_CUSTOMPAINT_3, name=Node Custom Paint 3)",
+                    "NODE_CUSTOMPAINT_4": "DefaultVisualizableVisualProperty(id=NODE_CUSTOMPAINT_4, name=Node Custom Paint 4)",
+                    "NODE_CUSTOMPAINT_5": "DefaultVisualizableVisualProperty(id=NODE_CUSTOMPAINT_5, name=Node Custom Paint 5)",
+                    "NODE_CUSTOMPAINT_6": "DefaultVisualizableVisualProperty(id=NODE_CUSTOMPAINT_6, name=Node Custom Paint 6)",
+                    "NODE_CUSTOMPAINT_7": "DefaultVisualizableVisualProperty(id=NODE_CUSTOMPAINT_7, name=Node Custom Paint 7)",
+                    "NODE_CUSTOMPAINT_8": "DefaultVisualizableVisualProperty(id=NODE_CUSTOMPAINT_8, name=Node Custom Paint 8)",
+                    "NODE_CUSTOMPAINT_9": "DefaultVisualizableVisualProperty(id=NODE_CUSTOMPAINT_9, name=Node Custom Paint 9)",
+                    "NODE_DEPTH": "0.0",
+                    "NODE_FILL_COLOR": "#E5E5E5",
+                    "NODE_HEIGHT": "40.0",
+                    "NODE_LABEL_COLOR": "#262626",
+                    "NODE_LABEL_FONT_FACE": "Dialog.plain,plain,12",
+                    "NODE_LABEL_FONT_SIZE": "10",
+                    "NODE_LABEL_POSITION": "C,C,c,0.00,0.00",
+                    "NODE_LABEL_TRANSPARENCY": "255",
+                    "NODE_LABEL_WIDTH": "200.0",
+                    "NODE_NESTED_NETWORK_IMAGE_VISIBLE": "true",
+                    "NODE_PAINT": "#787878",
+                    "NODE_SELECTED": "false",
+                    "NODE_SELECTED_PAINT": "#FFFF00",
+                    "NODE_SHAPE": "ELLIPSE",
+                    "NODE_SIZE": "50.0",
+                    "NODE_TRANSPARENCY": "255",
+                    "NODE_VISIBLE": "true",
+                    "NODE_WIDTH": "40.0",
+                    "NODE_X_LOCATION": "0.0",
+                    "NODE_Y_LOCATION": "0.0",
+                    "NODE_Z_LOCATION": "0.0"
+                },
+                "dependencies": {
+                    "nodeCustomGraphicsSizeSync": "true",
+                    "nodeSizeLocked": "false"
+                },
+                "mappings": {
+                    "NODE_BORDER_PAINT": {
+                        "type": "DISCRETE",
+                        "definition": "COL=type,T=string,K=0=smallmolecule,V=0=#D0D378,K=1=geneproduct,V=1=#0099CC,K=2=antibody,V=2=#333333,K=3=gene,V=3=#467CA8,K=4=proteinfamily,V=4=#285FF0,K=5=complex,V=5=#0099FF,K=6=variant,V=6=#80DFCD,K=7=pathway,V=7=#666666,K=8=mrna,V=8=#F46761"
+                    },
+                    "NODE_BORDER_WIDTH": {
+                        "type": "DISCRETE",
+                        "definition": "COL=type,T=string,K=0=disease,V=0=3.0,K=1=antibody,V=1=2.0,K=2=gene,V=2=4.0,K=3=proteinfamily,V=3=4.0,K=4=biologicalprocess,V=4=3.0,K=5=mrna,V=5=2.0,K=6=cellularcomponent,V=6=3.0,K=7=molecularfunction,V=7=3.0,K=8=smallmolecule,V=8=6.0,K=9=geneproduct,V=9=2.0,K=10=complex,V=10=10.0,K=11=variant,V=11=4.0,K=12=pathway,V=12=4.0,K=13=signal,V=13=3.0"
+                    },
+                    "NODE_FILL_COLOR": {
+                        "type": "DISCRETE",
+                        "definition": "COL=type,T=string,K=0=phenotype,V=0=#E8E8E8,K=1=antibody,V=1=#FFFFFF,K=2=disease,V=2=#FFFFFF,K=3=rna,V=3=#F46761,K=4=gene,V=4=#FFFFFF,K=5=proteinfamily,V=5=#FFFFFF,K=6=stimulus,V=6=#666666,K=7=biologicalprocess,V=7=#FFFFFF,K=8=mrna,V=8=#FFFFFF,K=9=cellularcomponent,V=9=#FFFFFF,K=10=drug,V=10=#DAE10E,K=11=molecularfunction,V=11=#FFFFFF,K=12=geneproduct,V=12=#FFFFFF,K=13=smallmolecule,V=13=#FFFFFF,K=14=chemical,V=14=#97CC2C,K=15=protein,V=15=#D1F5FF,K=16=complex,V=16=#FFFFFF,K=17=mirna,V=17=#EF7F23,K=18=variant,V=18=#FFFFFF,K=19=pathway,V=19=#FFFFFF,K=20=signal,V=20=#FFFFFF"
+                    },
+                    "NODE_HEIGHT": {
+                        "type": "DISCRETE",
+                        "definition": "COL=type,T=string,K=0=disease,V=0=50.0,K=1=rna,V=1=100.0,K=2=gene,V=2=25.0,K=3=proteinfamily,V=3=65.0,K=4=stimulus,V=4=60.0,K=5=biologicalprocess,V=5=20.0,K=6=mrna,V=6=100.0,K=7=cellularcomponent,V=7=20.0,K=8=drug,V=8=20.0,K=9=molecularfunction,V=9=20.0,K=10=smallmolecule,V=10=20.0,K=11=geneproduct,V=11=25.0,K=12=chemical,V=12=10.0,K=13=complex,V=13=60.0,K=14=protein,V=14=35.0,K=15=mirna,V=15=6.0,K=16=variant,V=16=25.0,K=17=pathway,V=17=55.0,K=18=signal,V=18=20.0"
+                    },
+                    "NODE_LABEL": {
+                        "type": "PASSTHROUGH",
+                        "definition": "COL=name,T=string"
+                    },
+                    "NODE_LABEL_COLOR": {
+                        "type": "DISCRETE",
+                        "definition": "COL=type,T=string,K=0=phenotype,V=0=#191919,K=1=complex,V=1=#000000,K=2=protein,V=2=#000000,K=3=variant,V=3=#000000"
+                    },
+                    "NODE_LABEL_FONT_SIZE": {
+                        "type": "DISCRETE",
+                        "definition": "COL=type,T=string,K=0=phenotype,V=0=16,K=1=complex,V=1=14,K=2=protein,V=2=12"
+                    },
+                    "NODE_LABEL_WIDTH": {
+                        "type": "DISCRETE",
+                        "definition": "COL=type,T=string,K=0=disease,V=0=50.0"
+                    },
+                    "NODE_SHAPE": {
+                        "type": "DISCRETE",
+                        "definition": "COL=type,T=string,K=0=phenotype,V=0=ROUND_RECTANGLE,K=1=antibody,V=1=VEE,K=2=disease,V=2=HEXAGON,K=3=rna,V=3=RECTANGLE,K=4=gene,V=4=RECTANGLE,K=5=stimulus,V=5=TRIANGLE,K=6=biologicalprocess,V=6=ROUND_RECTANGLE,K=7=mrna,V=7=RECTANGLE,K=8=cellularcomponent,V=8=ROUND_RECTANGLE,K=9=drug,V=9=DIAMOND,K=10=molecularfunction,V=10=ROUND_RECTANGLE,K=11=geneproduct,V=11=RECTANGLE,K=12=smallmolecule,V=12=DIAMOND,K=13=chemical,V=13=ELLIPSE,K=14=mirna,V=14=RECTANGLE,K=15=variant,V=15=RECTANGLE,K=16=pathway,V=16=ROUND_RECTANGLE,K=17=signal,V=17=TRIANGLE"
+                    },
+                    "NODE_TRANSPARENCY": {
+                        "type": "DISCRETE",
+                        "definition": "COL=type,T=string,K=0=phenotype,V=0=100"
+                    },
+                    "NODE_WIDTH": {
+                        "type": "DISCRETE",
+                        "definition": "COL=type,T=string,K=0=phenotype,V=0=120.0,K=1=antibody,V=1=30.0,K=2=disease,V=2=70.0,K=3=rna,V=3=8.0,K=4=gene,V=4=60.0,K=5=proteinfamily,V=5=70.0,K=6=stimulus,V=6=15.0,K=7=biologicalprocess,V=7=60.0,K=8=mrna,V=8=8.0,K=9=cellularcomponent,V=9=60.0,K=10=drug,V=10=20.0,K=11=molecularfunction,V=11=60.0,K=12=smallmolecule,V=12=20.0,K=13=geneproduct,V=13=120.0,K=14=chemical,V=14=10.0,K=15=complex,V=15=160.0,K=16=protein,V=16=60.0,K=17=mirna,V=17=45.0,K=18=variant,V=18=60.0,K=19=pathway,V=19=160.0,K=20=signal,V=20=30.0"
+                    }
+                }
+            },
+            {
+                "properties_of": "edges:default",
+                "properties": {
+                    "EDGE_CURVED": "true",
+                    "EDGE_LABEL_COLOR": "#000000",
+                    "EDGE_LABEL_FONT_FACE": "SansSerif.plain,plain,10",
+                    "EDGE_LABEL_FONT_SIZE": "10",
+                    "EDGE_LABEL_TRANSPARENCY": "255",
+                    "EDGE_LABEL_WIDTH": "200.0",
+                    "EDGE_LINE_TYPE": "SOLID",
+                    "EDGE_PAINT": "#323232",
+                    "EDGE_SELECTED": "false",
+                    "EDGE_SELECTED_PAINT": "#FF0000",
+                    "EDGE_SOURCE_ARROW_SELECTED_PAINT": "#FFFF00",
+                    "EDGE_SOURCE_ARROW_SHAPE": "NONE",
+                    "EDGE_SOURCE_ARROW_SIZE": "6.0",
+                    "EDGE_SOURCE_ARROW_UNSELECTED_PAINT": "#000000",
+                    "EDGE_STROKE_SELECTED_PAINT": "#FF0000",
+                    "EDGE_STROKE_UNSELECTED_PAINT": "#5B5B5B",
+                    "EDGE_TARGET_ARROW_SELECTED_PAINT": "#FFFF00",
+                    "EDGE_TARGET_ARROW_SHAPE": "NONE",
+                    "EDGE_TARGET_ARROW_SIZE": "6.0",
+                    "EDGE_TARGET_ARROW_UNSELECTED_PAINT": "#000000",
+                    "EDGE_TRANSPARENCY": "255",
+                    "EDGE_UNSELECTED_PAINT": "#999999",
+                    "EDGE_VISIBLE": "true",
+                    "EDGE_WIDTH": "1.0"
+                },
+                "dependencies": {
+                    "arrowColorMatchesEdge": "true"
+                },
+                "mappings": {
+                    "EDGE_UNSELECTED_PAINT": {
+                        "type": "CONTINUOUS",
+                        "definition": "COL=combined_score,T=double,L=0=#CCCCCC,E=0=#CCCCCC,G=0=#CCCCCC,OV=0=700.0,L=1=#000000,E=1=#000000,G=1=#000000,OV=1=1000.0"
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "status": [
+            {
+                "error": "",
+                "success": true
+            }
+        ]
+    }
+]
