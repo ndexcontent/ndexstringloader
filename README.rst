@@ -173,9 +173,9 @@ Here is how this command can be run for **dev** and **prod** targets:
 
 .. code-block::
 
-   ndexloadstring.py --profile dev
+   ndexloadstring.py --profile dev tmpdir/
 
-   ndexloadstring.py --profile prod
+   ndexloadstring.py --profile prod tmpdir/
 
 
 Via Docker
