@@ -8,6 +8,8 @@ import tempfile
 import shutil
 
 import unittest
+from unittest.mock import MagicMock
+
 from ndexutil.config import NDExUtilConfig
 from ndexstringloader.ndexloadstring import NDExSTRINGLoader
 import ndexstringloader
@@ -869,7 +871,6 @@ class TestNdexstringloader(unittest.TestCase):
             name_rep_alias = string_loader._get_name_rep_alias(key)
             self.assertEqual(name_rep_alias, represents_expected[key])
 
-
     def test_0180_create_NDEx_connection(self):
         loader = NDExSTRINGLoader(self._args)
 
@@ -963,7 +964,67 @@ class TestNdexstringloader(unittest.TestCase):
         self.maxDiff = None
         self.assertDictEqual(dict_1, dict_2)
 
+    def test_0191_load_or_update_network_on_server_cx_network_is_none(self):
+        loader = NDExSTRINGLoader(self._args)
+        loader.__setattr__('_user', 'u')
+        loader.__setattr__('_pass', 'p')
+        loader.__setattr__('_server', 's')
+        try:
+            res = loader._load_or_update_network_on_server('ha')
+            self.assertEqual(2, res)
+            self.fail('Expected exception')
+        except FileNotFoundError as fe:
+            self.assertTrue('No such file' in str(fe))
 
+    def test_0192_load_or_update_network_on_server_cx_network_no_id(self):
+        cxfile = os.path.join(self._args.datadir, 'hello.cx')
+        with open(cxfile, 'w') as f:
+            f.write('hello')
+        loader = NDExSTRINGLoader(self._args)
+        mockndex = MagicMock()
+        mockndex.save_cx_stream_as_new_network = MagicMock()
+        loader.set_ndex_connection(mockndex)
+        loader.__setattr__('_user', 'u')
+        loader.__setattr__('_pass', 'p')
+        loader.__setattr__('_server', 's')
+        loader.__setattr__('_cx_network', cxfile)
+        res = loader._load_or_update_network_on_server('ha')
+        self.assertEqual(0, res)
+        mockndex.save_cx_stream_as_new_network.assert_called()
+
+    def test_0193_load_or_update_network_on_server_cx_network_raise_except(self):
+        cxfile = os.path.join(self._args.datadir, 'hello.cx')
+        with open(cxfile, 'w') as f:
+            f.write('hello')
+        loader = NDExSTRINGLoader(self._args)
+        mockndex = MagicMock()
+        mockndex.save_cx_stream_as_new_network = MagicMock(side_effect=Exception('hi'))
+        loader.set_ndex_connection(mockndex)
+        loader.__setattr__('_user', 'u')
+        loader.__setattr__('_pass', 'p')
+        loader.__setattr__('_server', 's')
+        loader.__setattr__('_cx_network', cxfile)
+        res = loader._load_or_update_network_on_server('ha')
+        self.assertEqual(2, res)
+        mockndex.save_cx_stream_as_new_network.assert_called()
+
+    def test_0193_load_or_update_network_on_server_cx_network_withid(self):
+        cxfile = os.path.join(self._args.datadir, 'hello.cx')
+        with open(cxfile, 'w') as f:
+            f.write('hello')
+        loader = NDExSTRINGLoader(self._args)
+        mockndex = MagicMock()
+        mockndex.update_cx_network = MagicMock()
+        loader.set_ndex_connection(mockndex)
+        loader.__setattr__('_user', 'u')
+        loader.__setattr__('_pass', 'p')
+        loader.__setattr__('_server', 's')
+        loader.__setattr__('_cx_network', cxfile)
+        res = loader._load_or_update_network_on_server('ha',
+                                                       network_id='hehe')
+        self.assertEqual(0, res)
+        mockndex.update_cx_network.assert_called()
+    """
     def test_0200_load_or_update_network_on_server(self):
         user_name = 'aaa'
         password = 'aaa'
@@ -1040,7 +1101,7 @@ class TestNdexstringloader(unittest.TestCase):
         ndex_client.__setattr__('username', '_no_exists_')
         ret_code = loader._load_or_update_network_on_server('test network')
         self.assertEqual(ret_code, 2)
-
+    """
 
     def test_0210_load_to_NDEx(self):
         user_name = 'aaa'
@@ -1116,9 +1177,7 @@ class TestNdexstringloader(unittest.TestCase):
         ret_code = loader.load_to_NDEx()
         self.assertEqual(ret_code, 0)
 
-
-
-    #@unittest.skip("skip it  now - uncomment later")
+    @unittest.skip("switch this to use requests-mock")
     def test_0900_download_and_unzip(self):
 
         entrez_url = \
@@ -1136,8 +1195,7 @@ class TestNdexstringloader(unittest.TestCase):
         loader._unzip(local_downloaded_file_name_zipped)
         self.assertTrue(os.path.exists(local_downloaded_file_name_unzipped))
 
-
-    #@unittest.skip("skip it  now - uncomment later")
+    @unittest.skip("switch this to use requests-mock")
     def test_0910_download_and_unzip_STRING_files(self):
 
         loader = NDExSTRINGLoader(self._args)

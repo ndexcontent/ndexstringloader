@@ -580,8 +580,6 @@ class NDExSTRINGLoader(object):
 
         return net_attributes
 
-
-
     def _generate_CX_file(self, network_attributes):
 
         logger.debug('generating CX file for network {}...'.format(network_attributes['name']))
@@ -608,13 +606,12 @@ class NDExSTRINGLoader(object):
 
         logger.debug('CX file for network {} generated\n'.format(network_attributes['name']))
 
-
-
     def _load_or_update_network_on_server(self, network_name, network_id=None):
         ret_code = 0
-        logger.debug('updating network {} on server {} for user {}...'.format(network_name,
-                                                                              self._server,
-                                                                              self._user))
+        logger.debug('updating network {} on server {} '
+                     'for user {}...'.format(network_name,
+                                             str(self._server),
+                                             str(self._user)))
         with open(self._cx_network, 'br') as network_out:
             try:
                 if network_id is None:
@@ -628,14 +625,29 @@ class NDExSTRINGLoader(object):
                 logger.error('server returned error: {}\n'.format(e))
                 ret_code = 2
             else:
-                logger.info('network {} {} on server {} for user {}\n'.format(network_name, action,
-                                                                                self._server,
-                                                                                self._user))
+                logger.info('network {} {} on server {} for '
+                            'user {}\n'.format(network_name, action,
+                                               str(self._server),
+                                               str(self._user)))
         return ret_code
 
+    def set_ndex_connection(self, ndex):
+        """
+        Sets alternate connection to NDEx that will be
+        returned by :py:func:`create_ndex_connection()`
+
+        :param ndex: NDEx client
+        :type ndex: :py:class:`~ndex2.client.Ndex`
+        """
+        self._ndex = ndex
 
     def create_ndex_connection(self):
-
+        """
+        Creates connection to NDEx server if one does not already exist
+        The credentials are set via the configuration file which is parsed
+        in run() method
+        :return:
+        """
         if self._ndex is None:
             try:
                 self._ndex = ndex2.client.Ndex2(host=self._server, username=self._user, password=self._pass)
@@ -662,7 +674,6 @@ class NDExSTRINGLoader(object):
                     return summary.get('externalId')
 
         return None
-
 
     def load_to_NDEx(self):
 
