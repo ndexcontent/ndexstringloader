@@ -43,7 +43,7 @@ from `9606.protein.links.full.v11.0.txt.gz <https://stringdb-static.org/download
 
 To generate a STRING network, the loader reads rows from that file one by one and compares the value of the last
 column :code:`combined_score` with the value :code:`cutoffscore` argument.  The row is not added to the network generated in case
-:code:`combined_score` is less than :code:`cutoffscore`.
+:code:`combined_score` is less than the commad-line argument :code:`cutoffscore`.
 
 
 **2\)** If :code:`combined_score` is no than less :code:`cutoffscore`, the loader process two first columns
