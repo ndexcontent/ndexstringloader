@@ -18,12 +18,11 @@ with open('README.rst') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-requirements = ['ndex2',
-                'ndexutil']
+requirements = ['ndex2', 'ndexutil']
 
 setup_requirements = [ ]
 
-test_requirements = ['mock']
+test_requirements = ['mock', 'requests_mock']
 
 setup(
     author="Vladimir Rynkov",

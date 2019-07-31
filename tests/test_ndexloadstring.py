@@ -9,6 +9,9 @@ import shutil
 
 import unittest
 from unittest.mock import MagicMock
+from unittest import mock
+from unittest.mock import Mock
+from unittest.mock import patch
 
 from ndexutil.config import NDExUtilConfig
 from ndexstringloader.ndexloadstring import NDExSTRINGLoader
@@ -22,6 +25,13 @@ import pandas as pd
 import ndexutil.tsv.tsv2nicecx2 as t2n
 
 import time
+
+from unittest.mock import patch, mock_open
+import requests
+import requests_mock
+
+
+from requests.exceptions import Timeout
 
 class Param(object):
     """
@@ -964,7 +974,7 @@ class TestNdexstringloader(unittest.TestCase):
         self.maxDiff = None
         self.assertDictEqual(dict_1, dict_2)
 
-    def test_0191_load_or_update_network_on_server_cx_network_is_none(self):
+    def test_0200_load_or_update_network_on_server_cx_network_is_none(self):
         loader = NDExSTRINGLoader(self._args)
         loader.__setattr__('_user', 'u')
         loader.__setattr__('_pass', 'p')
@@ -976,7 +986,7 @@ class TestNdexstringloader(unittest.TestCase):
         except FileNotFoundError as fe:
             self.assertTrue('No such file' in str(fe))
 
-    def test_0192_load_or_update_network_on_server_cx_network_no_id(self):
+    def test_0210_load_or_update_network_on_server_cx_network_no_id(self):
         cxfile = os.path.join(self._args.datadir, 'hello.cx')
         with open(cxfile, 'w') as f:
             f.write('hello')
@@ -992,7 +1002,7 @@ class TestNdexstringloader(unittest.TestCase):
         self.assertEqual(0, res)
         mockndex.save_cx_stream_as_new_network.assert_called()
 
-    def test_0193_load_or_update_network_on_server_cx_network_raise_except(self):
+    def test_0220_load_or_update_network_on_server_cx_network_raise_except(self):
         cxfile = os.path.join(self._args.datadir, 'hello.cx')
         with open(cxfile, 'w') as f:
             f.write('hello')
@@ -1008,7 +1018,7 @@ class TestNdexstringloader(unittest.TestCase):
         self.assertEqual(2, res)
         mockndex.save_cx_stream_as_new_network.assert_called()
 
-    def test_0193_load_or_update_network_on_server_cx_network_withid(self):
+    def test_0230_load_or_update_network_on_server_cx_network_withid(self):
         cxfile = os.path.join(self._args.datadir, 'hello.cx')
         with open(cxfile, 'w') as f:
             f.write('hello')
@@ -1020,12 +1030,12 @@ class TestNdexstringloader(unittest.TestCase):
         loader.__setattr__('_pass', 'p')
         loader.__setattr__('_server', 's')
         loader.__setattr__('_cx_network', cxfile)
-        res = loader._load_or_update_network_on_server('ha',
-                                                       network_id='hehe')
+        res = loader._load_or_update_network_on_server('haha', network_id='hehe')
         self.assertEqual(0, res)
         mockndex.update_cx_network.assert_called()
+
     """
-    def test_0200_load_or_update_network_on_server(self):
+    def test_0240_load_or_update_network_on_server(self):
         user_name = 'aaa'
         password = 'aaa'
         server = 'dev.ndexbio.org'
@@ -1103,7 +1113,9 @@ class TestNdexstringloader(unittest.TestCase):
         self.assertEqual(ret_code, 2)
     """
 
-    def test_0210_load_to_NDEx(self):
+
+    @unittest.skip("this test actually creates a small network and uploads it to server; we skip it")
+    def test_0240_load_to_NDEx(self):
         user_name = 'aaa'
         password = 'aaa'
         server = 'dev.ndexbio.org'
@@ -1177,8 +1189,96 @@ class TestNdexstringloader(unittest.TestCase):
         ret_code = loader.load_to_NDEx()
         self.assertEqual(ret_code, 0)
 
-    @unittest.skip("switch this to use requests-mock")
-    def test_0900_download_and_unzip(self):
+
+    def test_0900_download(self):
+
+        entrez_url = \
+            'https://stringdb-static.org/mapping_files/entrez/human.entrez_2_string.2018.tsv.gz'
+
+        local_file_name = 'entrez.tsv'
+        local_downloaded_file_name_unzipped = self._args['datadir'] + '/' + local_file_name
+        local_downloaded_file_name_zipped = local_downloaded_file_name_unzipped + '.gz'
+
+        loader = NDExSTRINGLoader(self._args)
+
+        # expect to raise Timeout exception
+        with patch('ndexstringloader.ndexloadstring.requests') as mock_requests:
+            mock_requests.get.side_effect = Timeout
+            with self.assertRaises(Timeout):
+                loader._download(entrez_url, local_downloaded_file_name_zipped)
+            mock_requests.get.assert_called_once_with(entrez_url)
+
+        with patch('ndexstringloader.ndexloadstring.requests.get') as mock_get:
+            not_found_code = 404
+            mock_get.return_value.status_code = not_found_code
+            assert loader._download(entrez_url, local_downloaded_file_name_zipped) == not_found_code
+
+            mock_get.assert_called_once_with(entrez_url)
+
+        with patch('ndexstringloader.ndexloadstring.requests.get') as mock_get:
+            mock_get.return_value.status_code = 200
+            mock_get.return_value.content = 'hello'.encode()  # this is the 'content' to be written to file
+
+            assert loader._download(entrez_url, local_downloaded_file_name_zipped) == 0
+            mock_get.assert_called_once_with(entrez_url)
+
+
+    def test_0910_download_STRING_files(self):
+
+        loader = NDExSTRINGLoader(self._args)
+
+        _protein_links_url = loader.__getattribute__('_protein_links_url')
+        _names_file_url = loader.__getattribute__('_names_file_url')
+        _entrez_ids_file_url = loader.__getattribute__('_entrez_ids_file_url')
+        _uniprot_file = loader.__getattribute__('_uniprot_ids_file_url')
+
+        not_found_code = 404
+
+        with requests_mock.mock() as m:
+            # test scenario when all fiels are downloaded fine \
+            m.get(_protein_links_url, text='protein data returned by the get', status_code=200)
+            m.get(_names_file_url, text='name data returned by the get', status_code=200)
+            m.get(_entrez_ids_file_url, text='entrez data returned by the get', status_code=200)
+            m.get(_uniprot_file, text='uniprot data returned by the get', status_code=200)
+            assert loader._download_STRING_files() == 0
+
+            # test scenario when failed to download _protein_links_url
+            m.get(_protein_links_url, text='data returned by the get', status_code=not_found_code)
+            assert loader._download_STRING_files() == not_found_code
+
+            # test scenario when failed to download _names_file_url
+            m.get(_protein_links_url, text='data returned by the get', status_code=200)
+            m.get(_names_file_url, text='name data returned by the get', status_code=not_found_code)
+            assert loader._download_STRING_files() == not_found_code
+
+            # test scenario when failed to download _entrez_ids_file_url
+            m.get(_protein_links_url, text='protein data returned by the get', status_code=200)
+            m.get(_names_file_url, text='name data returned by the get', status_code=200)
+            m.get(_entrez_ids_file_url, text='entrez data returned by the get', status_code=not_found_code)
+            assert loader._download_STRING_files() == not_found_code
+
+            # test scenario when failed to download _uniprot_file
+            m.get(_protein_links_url, text='protein data returned by the get', status_code=200)
+            m.get(_names_file_url, text='name data returned by the get', status_code=200)
+            m.get(_entrez_ids_file_url, text='entrez data returned by the get', status_code=200)
+            m.get(_uniprot_file, text='uniprot data returned by the get', status_code=not_found_code)
+            assert loader._download_STRING_files() == not_found_code
+
+
+
+    def test_0920_unpackp_STRING_files(self):
+
+        loader = NDExSTRINGLoader(self._args)
+
+        full_file = loader.__getattribute__('_full_file_name') + '.gz'
+        names_file = loader.__getattribute__('_names_file') + '.gz'
+        entrez_file = loader.__getattribute__('_entrez_file') + '.gz'
+        uniprot_file = loader.__getattribute__('_uniprot_file') + '.gz'
+
+
+
+    @unittest.skip("this test actually gets human.entrez_2_string.2018.tsv.gz from STRING server; we skip it")
+    def test_1000_download_and_unzip(self):
 
         entrez_url = \
             'https://stringdb-static.org/mapping_files/entrez/human.entrez_2_string.2018.tsv.gz'
@@ -1195,8 +1295,10 @@ class TestNdexstringloader(unittest.TestCase):
         loader._unzip(local_downloaded_file_name_zipped)
         self.assertTrue(os.path.exists(local_downloaded_file_name_unzipped))
 
-    @unittest.skip("switch this to use requests-mock")
-    def test_0910_download_and_unzip_STRING_files(self):
+
+
+    @unittest.skip("this test actually downloads files from server and unpacks them;  we skip it")
+    def test_1010_download_and_unzip_STRING_files(self):
 
         loader = NDExSTRINGLoader(self._args)
 
@@ -1211,7 +1313,6 @@ class TestNdexstringloader(unittest.TestCase):
         self.assertTrue(os.path.exists(names_file))
         self.assertTrue(os.path.exists(entrez_file))
         self.assertTrue(os.path.exists(uniprot_file))
-
 
         loader._unpack_STRING_files()
 

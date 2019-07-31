@@ -231,9 +231,14 @@ class NDExSTRINGLoader(object):
         logger.info('downloading {} to {}...'.format(url, local_file_name))
 
         r = requests.get(url)
+        if r.status_code != 200:
+            return r.status_code
+
         with open(local_file_name, "wb") as code:
             code.write(r.content)
             logger.debug('downloaded {} to {}\n'.format(url, local_file_name))
+
+        return 0
 
     def _unzip(self, zip_file):
         local_file_name = zip_file[:-3]
@@ -252,20 +257,38 @@ class NDExSTRINGLoader(object):
         Parses config
         :return:
         """
-        self._download(self._protein_links_url, self._full_file_name + '.gz')
-        self._download(self._names_file_url, self._names_file + '.gz')
-        self._download(self._entrez_ids_file_url, self._entrez_file + '.gz')
-        self._download(self._uniprot_ids_file_url, self._uniprot_file + '.gz')
+        ret_code = self._download(self._protein_links_url, self._full_file_name + '.gz')
+        if (ret_code != 0):
+            return ret_code
+
+        ret_code = self._download(self._names_file_url, self._names_file + '.gz')
+        if (ret_code != 0):
+            return ret_code
+
+        ret_code = self._download(self._entrez_ids_file_url, self._entrez_file + '.gz')
+        if (ret_code != 0):
+            return ret_code
+
+        return self._download(self._uniprot_ids_file_url, self._uniprot_file + '.gz')
 
     def _unpack_STRING_files(self):
         """
         Parses config
         :return:
         """
-        self._unzip(self._full_file_name + '.gz')
-        self._unzip(self._entrez_file + '.gz')
-        self._unzip(self._names_file + '.gz')
-        self._unzip(self._uniprot_file + '.gz')
+        ret_code = self._unzip(self._full_file_name + '.gz')
+        if (ret_code != 0):
+            return ret_code
+
+        ret_code = self._unzip(self._entrez_file + '.gz')
+        if (ret_code != 0):
+            return ret_code
+
+        ret_code = self._unzip(self._names_file + '.gz')
+        if (ret_code != 0):
+            return ret_code
+
+        return self._unzip(self._uniprot_file + '.gz')
 
     def _get_name_rep_alias(self, ensembl_protein_id):
         name_rep_alias = self.ensembl_ids[ensembl_protein_id]
@@ -516,8 +539,13 @@ class NDExSTRINGLoader(object):
         data_dir_existed = self._check_if_data_dir_exists()
 
         if self._args.skipdownload is False or data_dir_existed is False:
-            self._download_STRING_files()
-            self._unpack_STRING_files()
+            ret_code = self._download_STRING_files()
+            if ret_code != 0:
+                return ret_code
+
+            ret_code = self._unpack_STRING_files()
+            if ret_code != 0:
+                return ret_code
 
 
         self._init_ensembl_ids()
