@@ -29,7 +29,7 @@ This tool downloads and unpacks the `STRING <https://string-db.org/>`_ files bel
 
     `human.uniprot_2_string.2018.tsv.gz <https://string-db.org/mapping_files/uniprot/human.uniprot_2_string.2018.tsv.gz>`_
 
-generates a new tsv file, transforms it to CX, and uploads it to NDEx server. Duplicate edges (edges that have the same Source and Target nodes and the same value of :code:`combined_score') are included to the generated tsv and CX files only once. Name of the newly generated network includes the value of :code:`cutoffscore` argument, for example,  :code:`STRING - Human Protein Links - High Confidence (Score >= 0.7)`. If network with this name already exists on the server, then network gets over-written; otherwise, a new network is created on the server.
+generates a new tsv file, transforms it to CX, and uploads it to NDEx server. Duplicate edges (edges that have the same Source and Target nodes and the same value of :code:`combined_score`) are included to the generated tsv and CX files only once. Name of the newly generated network includes the value of :code:`cutoffscore` argument, for example,  :code:`STRING - Human Protein Links - High Confidence (Score >= 0.7)`. If network with this name already exists on the server, then network gets over-written; otherwise, a new network is created on the server.
 
 
 
