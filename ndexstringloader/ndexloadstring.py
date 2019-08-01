@@ -251,6 +251,7 @@ class NDExSTRINGLoader(object):
 
         os.remove(zip_file)
         logger.debug('{} unzipped and removed\n'.format(zip_file))
+        return 0
 
     def _download_STRING_files(self):
         """
@@ -380,10 +381,10 @@ class NDExSTRINGLoader(object):
                                      '\t'.join(x for x in columns_in_row[2:])
 
                         o_f.write(tsv_string)
-                        row_count = + 1
+                        row_count += 1
 
-            logger.debug('Created {} ({:,} lines) \n'.format(output_file, row_count))
-            logger.debug('{:,} duplicate rows detected \n'.format(dup_count))
+        logger.debug('Created {} ({:,} lines) \n'.format(output_file, row_count))
+        logger.debug('{:,} duplicate rows detected \n'.format(dup_count))
 
 
     def _check_if_data_dir_exists(self):
@@ -547,22 +548,16 @@ class NDExSTRINGLoader(object):
             if ret_code != 0:
                 return ret_code
 
-
         self._init_ensembl_ids()
-
 
         #populate name - 4.display name -> becomes name
         self._populate_display_names()
 
-
         # populate alias - 3. node string id -> becomes alias, for example
         # ensembl:ENSP00000000233|ncbigene:857
-
         self._populate_aliases()
 
-
         self._populate_represents()
-
 
         self.create_output_tsv_file()
 
