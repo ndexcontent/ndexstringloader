@@ -29,7 +29,13 @@ This tool downloads and unpacks the `STRING <https://string-db.org/>`_ files bel
 
     `human.uniprot_2_string.2018.tsv.gz <https://string-db.org/mapping_files/uniprot/human.uniprot_2_string.2018.tsv.gz>`_
 
-generates a new tsv file, transforms it to CX, and uploads it to NDEx server. Duplicate edges (edges that have the same Source and Target nodes and the same value of :code:`combined_score`) are included to the generated tsv and CX files only once. Name of the newly generated network includes the value of :code:`cutoffscore` argument, for example,  :code:`STRING - Human Protein Links - High Confidence (Score >= 0.7)`. If network with this name already exists on the server, then network gets over-written; otherwise, a new network is created on the server.
+generates a new tsv file, transforms it to CX, and uploads it to NDEx server. Duplicate edges
+(edges that have the same Source and Target nodes and the same value of :code:`combined_score`)
+are included to the generated tsv and CX files only once. Name of the newly generated network includes
+the value of :code:`cutoffscore` argument, for example,
+:code:`STRING - Human Protein Links - High Confidence (Score >= 0.7)`. If network with this name
+already exists on the server, then the network gets over-written; otherwise, a new network is
+created.
 
 
 
@@ -74,7 +80,7 @@ to create list of aliases for the current protein.  Thus, list of aliases for :c
 
    protein_display_name_1 represents_1 alias_1 protein_display_name_2 represents_2 alias_2
 
-So, the original 
+So, the original
 
 .. code-block::
 
@@ -109,7 +115,7 @@ Installation
    pip install dist/ndexloadstring*whl
 
 
-Run **make** command with no arguments to see other build/deploy options including creation of Docker image 
+Run **make** command with no arguments to see other build/deploy options including creation of Docker image
 
 .. code-block::
 
@@ -151,8 +157,8 @@ Networks listed in **[network_ids]** section need to be visible to the **user**
 .. code-block::
 
     [ndexstringloader]
-    user = joe123 
-    password = somepassword123 
+    user = joe123
+    password = somepassword123
     server = dev.ndexbio.org
 
 
@@ -198,5 +204,3 @@ This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypack
 
 .. _Cookiecutter: https://github.com/audreyr/cookiecutter
 .. _`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage
-.. _`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage
-.. _NDEx: http://www.ndexbio.org
