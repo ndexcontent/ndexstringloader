@@ -2,6 +2,10 @@
 History
 =======
 
+0.2.1 (2019-08-23)
+------------------
+* Improved README file.
+* Added new JUnit tests (JUnit test coverage is 87%).
 
 0.2.0 (2019-07-26)
 ------------------
@@ -12,10 +16,6 @@ History
 
    required --datadir specifies a working directory where STRING files will be downloaded to and processed style.cx file that contains style is supplied with the STRING loader and used by default. It can be overwritten with --style argument.
 
-
-* First release on PyPI.
-
 0.1.0 (2019-03-13)
 ------------------
-
 * First release on PyPI.
