@@ -376,6 +376,8 @@ class TestNdexstringloader(unittest.TestCase):
         expected_args['stringversion'] = '11.0'
         expected_args['style'] = os.path.join(ndexloadstring.get_package_dir(), ndexloadstring.STYLE)
         expected_args['verbose'] = 0
+        expected_args['template'] = None
+        expected_args['update'] = None
 
         the_args = ndexloadstring._parse_arguments(desc, args)
 
@@ -974,13 +976,14 @@ class TestNdexstringloader(unittest.TestCase):
         self.maxDiff = None
         self.assertDictEqual(dict_1, dict_2)
 
+
     def test_0200_load_or_update_network_on_server_cx_network_is_none(self):
         loader = NDExSTRINGLoader(self._args)
         loader.__setattr__('_user', 'u')
         loader.__setattr__('_pass', 'p')
         loader.__setattr__('_server', 's')
         try:
-            res = loader._load_or_update_network_on_server('ha')
+            res = loader._load_network_to_server('ha')
             self.assertEqual(2, res)
             self.fail('Expected exception')
         except FileNotFoundError as fe:
@@ -998,7 +1001,7 @@ class TestNdexstringloader(unittest.TestCase):
         loader.__setattr__('_pass', 'p')
         loader.__setattr__('_server', 's')
         loader.__setattr__('_cx_network', cxfile)
-        res = loader._load_or_update_network_on_server('ha')
+        res = loader._load_network_to_server('ha')
         self.assertEqual(0, res)
         mockndex.save_cx_stream_as_new_network.assert_called()
 
@@ -1014,7 +1017,7 @@ class TestNdexstringloader(unittest.TestCase):
         loader.__setattr__('_pass', 'p')
         loader.__setattr__('_server', 's')
         loader.__setattr__('_cx_network', cxfile)
-        res = loader._load_or_update_network_on_server('ha')
+        res = loader._load_network_to_server('ha')
         self.assertEqual(2, res)
         mockndex.save_cx_stream_as_new_network.assert_called()
 
@@ -1025,12 +1028,13 @@ class TestNdexstringloader(unittest.TestCase):
         loader = NDExSTRINGLoader(self._args)
         mockndex = MagicMock()
         mockndex.update_cx_network = MagicMock()
+        mockndex.update_cx_network.return_value = 0
         loader.set_ndex_connection(mockndex)
         loader.__setattr__('_user', 'u')
         loader.__setattr__('_pass', 'p')
         loader.__setattr__('_server', 's')
         loader.__setattr__('_cx_network', cxfile)
-        res = loader._load_or_update_network_on_server('haha', network_id='hehe')
+        res = loader._update_network_on_server('haha', network_id='hehe')
         self.assertEqual(0, res)
         mockndex.update_cx_network.assert_called()
 
@@ -1059,21 +1063,21 @@ class TestNdexstringloader(unittest.TestCase):
         for summary in network_summaries_for_mock:
             network_name = summary.get('name')
             network_uuid = summary.get('externalId')
-            network_uuid_from_server = loader.get_network_uuid(network_name)
+            network_uuid_from_server = loader.get_network_uuid(network_name, network_summaries_for_mock)
 
-            mockndex.get_network_summaries_for_user.assert_called_with(loader.__getattribute__('_user'))
+            #mockndex.get_network_summaries_for_user.assert_called_with(loader.__getattribute__('_user'))
             self.assertEqual(network_uuid,network_uuid_from_server)
 
         # test scenario where Network Name is not found in network summaries
         network_name = 'Non Existant Name'
-        network_uuid_from_server = loader.get_network_uuid(network_name)
-        mockndex.get_network_summaries_for_user.assert_called_with(loader.__getattribute__('_user'))
+        network_uuid_from_server = loader.get_network_uuid(network_name, network_summaries_for_mock)
+        #mockndex.get_network_summaries_for_user.assert_called_with(loader.__getattribute__('_user'))
         self.assertIsNone(network_uuid_from_server)
 
         # test scenario where Network Name is not found in network summaries
-        mockndex.get_network_summaries_for_user.side_effect = Exception('Server is Down')
-        network_uuid_from_server = loader.get_network_uuid(network_name)
-        self.assertEqual(network_uuid_from_server, 2)
+        #mockndex.get_network_summaries_for_user.side_effect = Exception('Server is Down')
+        #network_uuid_from_server = loader.get_network_uuid(network_name, network_summaries_for_mock)
+        #self.assertEqual(network_uuid_from_server, 2)
 
 
     def test_0250_download(self):

@@ -2,6 +2,10 @@
 History
 =======
 
+0.2.2 (2019-09-12)
+------------------
+* Added new featured specified by UD-577 Quick improvement for new String loader (added optional --update argument that allows to specify the UUID of a target network to update; added optional --template argument that allows to specify the UUID of a target network to use as style template, the update operation now only changes nodes and edges, but leaves network properties untouched).
+
 0.2.1 (2019-08-23)
 ------------------
 * Improved README file.
