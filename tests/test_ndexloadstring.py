@@ -977,7 +977,7 @@ class TestNdexstringloader(unittest.TestCase):
         self.assertDictEqual(dict_1, dict_2)
 
 
-    def test_0200_load_or_update_network_on_server_cx_network_is_none(self):
+    def test_0200_load_network_to_server_cx_network_is_none(self):
         loader = NDExSTRINGLoader(self._args)
         loader.__setattr__('_user', 'u')
         loader.__setattr__('_pass', 'p')
@@ -989,7 +989,7 @@ class TestNdexstringloader(unittest.TestCase):
         except FileNotFoundError as fe:
             self.assertTrue('No such file' in str(fe))
 
-    def test_0210_load_or_update_network_on_server_cx_network_no_id(self):
+    def test_0210_load_network_to_server_cx_network_no_id(self):
         cxfile = os.path.join(self._args.datadir, 'hello.cx')
         with open(cxfile, 'w') as f:
             f.write('hello')
@@ -1005,7 +1005,7 @@ class TestNdexstringloader(unittest.TestCase):
         self.assertEqual(0, res)
         mockndex.save_cx_stream_as_new_network.assert_called()
 
-    def test_0220_load_or_update_network_on_server_cx_network_raise_except(self):
+    def test_0220_load_network_to_server_cx_network_raise_except(self):
         cxfile = os.path.join(self._args.datadir, 'hello.cx')
         with open(cxfile, 'w') as f:
             f.write('hello')
@@ -1021,7 +1021,7 @@ class TestNdexstringloader(unittest.TestCase):
         self.assertEqual(2, res)
         mockndex.save_cx_stream_as_new_network.assert_called()
 
-    def test_0230_load_or_update_network_on_server_cx_network_withid(self):
+    def test_0230_update_network_on_server_cx_network_withid(self):
         cxfile = os.path.join(self._args.datadir, 'hello.cx')
         with open(cxfile, 'w') as f:
             f.write('hello')
@@ -1155,57 +1155,58 @@ class TestNdexstringloader(unittest.TestCase):
             assert loader._download_STRING_files() == not_found_code
 
 
-    @unittest.skip("needs to be finished")
+    #@unittest.skip("needs to be finished")
     def test_0270_unpack_STRING_files(self):
 
         loader = NDExSTRINGLoader(self._args)
+        vals = {
+            ('full.gz'): ndexloadstring.ERROR_CODE,
+            ('entrez.gz'): ndexloadstring.ERROR_CODE,
+            ('names.gz'): ndexloadstring.ERROR_CODE,
+            ('uniprot.gz'): ndexloadstring.ERROR_CODE
+        }
 
-        def side_effect(*args):
-            vals = {('aaa.gz'): 1, ('bbb.gz'): 2, ('ccc.gz'): 3, ('ddd.gz'): 4}
-            return vals[args]
+        def side_effect(args):
+            ret_value = vals[args]
+            return ret_value
 
-        #mock_unzip.save_cx_stream_as_new_network = MagicMock()
+        loader._unzip = MagicMock(return_value = 0)
 
-        #loader.__setattr__('_full_file_name', 'aaa')
+        loader.__setattr__('_full_file_name', 'full')
+        loader.__setattr__('_entrez_file', 'entrez')
+        loader.__setattr__('_names_file', 'names')
+        loader.__setattr__('_uniprot_file', 'uniprot')
+
+        ret_value = loader._unpack_STRING_files()
+        self.assertEqual(ret_value, 0)
 
         loader._unzip = MagicMock(side_effect=side_effect)
-
-        #loader._unzip.side_effect = 2
-        loader.__setattr__('_full_file_name', 'aaa')
         ret_value = loader._unpack_STRING_files()
-        #self.assertEqual(ret_value, 1)
+        self.assertEqual(ret_value, ndexloadstring.ERROR_CODE)
 
-        loader.__setattr__('_full_file_name', 'bbb')
+        # now, I want simulate a scenario where unzipping full.gz succeeds, but unzipping entrez.gz fails
+        vals[('full.gz')] = ndexloadstring.SUCCESS_CODE
         ret_value = loader._unpack_STRING_files()
-        #self.assertEqual(ret_value, 2)
+        self.assertEqual(ret_value, ndexloadstring.ERROR_CODE)
 
-        loader.__setattr__('_full_file_name', 'ccc')
+        vals[('entrez.gz')] = ndexloadstring.SUCCESS_CODE
         ret_value = loader._unpack_STRING_files()
-        #self.assertEqual(ret_value, 3)
+        self.assertEqual(ret_value, ndexloadstring.ERROR_CODE)
 
+        vals[('names.gz')] = ndexloadstring.SUCCESS_CODE
+        ret_value = loader._unpack_STRING_files()
+        self.assertEqual(ret_value, ndexloadstring.ERROR_CODE)
 
-
-    @unittest.skip("needs to be finished")
-    def test_0280_load_to_NDEx(self):
-
-        loader = NDExSTRINGLoader(self._args)
-        loader.create_ndex_connection = MagicMock(return_value=None)
-
-        ret_value = loader.load_to_NDEx()
-        self.assertEqual(ret_value, 2)
-
-        #loader.create_ndex_connection.return_value = MagicMock()
-        #ret_value = loader.load_to_NDEx()
-
-
-
+        vals[('uniprot.gz')] = ndexloadstring.SUCCESS_CODE
+        ret_value = loader._unpack_STRING_files()
+        self.assertEqual(ret_value, ndexloadstring.SUCCESS_CODE)
 
 
     @mock.patch('ndexstringloader.ndexloadstring.gzip.open')
     @mock.patch('ndexstringloader.ndexloadstring.open')
     @mock.patch('ndexstringloader.ndexloadstring.shutil.copyfileobj')
     @mock.patch('ndexstringloader.ndexloadstring.os.remove')
-    def test_0290_unzip(self, mock_remove, mock_copyfileobj, mock_open, mock_gzopen):
+    def test_0280_unzip(self, mock_remove, mock_copyfileobj, mock_open, mock_gzopen):
 
         loader = NDExSTRINGLoader(self._args)
 
@@ -1230,6 +1231,18 @@ class TestNdexstringloader(unittest.TestCase):
         mock_copyfileobj.assert_called_once()
 
 
+    def test_0290_is_valid_update_UUID(self):
+
+        loader = NDExSTRINGLoader(self._args)
+
+        loader.__setattr__('_update_UUID', None)
+        self.assertTrue(loader._is_valid_update_UUID())
+
+        loader.__setattr__('_update_UUID', 'a62c9252-ce13-11e9-8bd8-525400c25d22')
+        self.assertTrue(loader._is_valid_update_UUID())
+
+        loader.__setattr__('_update_UUID', 'a62c9252-ce13-11e9-8bd8-525400c25d2')
+        self.assertFalse(loader._is_valid_update_UUID())
 
 
 

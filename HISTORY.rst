@@ -2,6 +2,10 @@
 History
 =======
 
+0.2.3 (2019-09-13)
+------------------
+* If user loads the entire STRING network (i.e., runs the script with --cutoffscore 0), the name of the resulting netwpork should be "STRING - Human Protein Links", not "STRING - Human Protein Links - High Confidence".
+
 0.2.2 (2019-09-12)
 ------------------
 * Added new featured specified by UD-577 Quick improvement for new String loader (added optional --update argument that allows to specify the UUID of a target network to update; added optional --template argument that allows to specify the UUID of a target network to use as style template, the update operation now only changes nodes and edges, but leaves network properties untouched).

@@ -300,7 +300,11 @@ class NDExSTRINGLoader(object):
         if (ret_code != SUCCESS_CODE):
             return ERROR_CODE
 
-        return self._unzip(self._uniprot_file + '.gz')
+        ret_code = self._unzip(self._uniprot_file + '.gz')
+        if (ret_code != SUCCESS_CODE):
+            return ERROR_CODE
+
+        return SUCCESS_CODE
 
     def _get_name_rep_alias(self, ensembl_protein_id):
         name_rep_alias = self.ensembl_ids[ensembl_protein_id]
@@ -593,10 +597,12 @@ class NDExSTRINGLoader(object):
 
 
     def _get_network_name(self):
-        network_name = 'STRING - Human Protein Links - High Confidence'
 
-        if self._cutoffscore > 0:
-            network_name = network_name + ' (Score >= ' + str(self._cutoffscore) + ')'
+        if self._cutoffscore == 0:
+            network_name = 'STRING - Human Protein Links'
+        else:
+            network_name = \
+                'STRING - Human Protein Links - High Confidence (Score >= ' + str(self._cutoffscore) + ')'
 
         return network_name
 
