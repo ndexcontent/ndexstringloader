@@ -940,13 +940,11 @@ class TestNdexstringloader(unittest.TestCase):
         temp_links_tsv_file = os.path.join(temp_dir, '__protein_links_tmp__.tsv')
         temp_cx_network = os.path.join(temp_dir, '__networks__.cx')
 
-
         with open(temp_links_tsv_file, 'w') as f:
             f.write(tsv_header_str)
             for t in tsv_body:
                 f.write(t + '\n')
             f.flush()
-
 
         self._args.style = ndexloadstring.get_style()
         loader = NDExSTRINGLoader(self._args)
@@ -1245,6 +1243,153 @@ class TestNdexstringloader(unittest.TestCase):
         self.assertFalse(loader._is_valid_update_UUID())
 
 
+    def test_0300_get_network_name(self):
+        network_name = 'STRING - Human Protein Links'
+
+        loader = NDExSTRINGLoader(self._args)
+
+        loader.__setattr__('_cutoffscore', 0)
+        self.assertEqual(network_name, loader._get_network_name())
+
+        loader.__setattr__('_cutoffscore', 0.0)
+        self.assertEqual(network_name, loader._get_network_name())
+
+        loader.__setattr__('_cutoffscore', 0.00)
+        self.assertEqual(network_name, loader._get_network_name())
+
+        loader.__setattr__('_cutoffscore', 0.7)
+        network_name = 'STRING - Human Protein Links - High Confidence (Score >= 0.7)'
+        self.assertEqual(network_name, loader._get_network_name())
+
+        loader.__setattr__('_cutoffscore', .7)
+        self.assertEqual(network_name, loader._get_network_name())
+
+        loader.__setattr__('_cutoffscore', 0.700)
+        self.assertEqual(network_name, loader._get_network_name())
+
+        loader.__setattr__('_cutoffscore', 0.543)
+        network_name = 'STRING - Human Protein Links - High Confidence (Score >= 0.543)'
+        self.assertEqual(network_name, loader._get_network_name())
+
+
+    def test_0310_get_summary_from_summaries(self):
+        loader = NDExSTRINGLoader(self._args)
+
+        network_summaries = [
+        {
+            'externalId': 'a2364b5e-d5d8-11e9-8bd8-525400c25d22',
+            'properties':
+                   [{'subNetworkId': None, 'predicateString': '@context', 'dataType': 'string',
+                     'value': '{"ncbigene": "http://identifiers.org/ncbigene/", "uniprot": "http://identifiers.org/uniprot/", "ensembl": "http://identifiers.org/ensembl/"}'},
+                    {'subNetworkId': None, 'predicateString': 'rights', 'dataType': 'string', 'value': 'Attribution 4.0 International (CC BY 4.0)'},
+                    {'subNetworkId': None, 'predicateString': 'rightsHolder', 'dataType': 'string', 'value': 'STRING CONSORTIUM'},
+                    {'subNetworkId': None, 'predicateString': 'organism', 'dataType': 'string', 'value': 'Homo sapiens (human)'},
+                    {'subNetworkId': None, 'predicateString': 'networkType', 'dataType': 'list_of_string', 'value': '["interactome","ppi"]'},
+                    {'subNetworkId': None, 'predicateString': 'reference', 'dataType': 'string',
+                     'value': '<p>Szklarczyk D, Morris JH, Cook H, Kuhn M, Wyder S, Simonovic M, Santos A, ' +
+                     'Doncheva NT, Roth A, Bork P, Jensen LJ, von Mering C.<br><b> The STRING database in 2017: ' +
+                     'quality-controlled protein-protein association networks, made broadly accessible.</b><br> ' +
+                     'Nucleic Acids Res. 2017 Jan; 45:D362-68.<br> <a target="_blank" ' +
+                     'href="https://doi.org/10.1093/nar/gkw937">DOI:10.1093/nar/gkw937</a></p>'},
+                    {'subNetworkId': None, 'predicateString': 'prov:wasDerivedFrom', 'dataType': 'string',
+                     'value': 'https://stringdb-static.org/download/protein.links.full.v11.0/9606.protein.links.full.v11.0.txt.gz'},
+                    {'subNetworkId': None, 'predicateString': 'prov:wasGeneratedBy', 'dataType': 'string',
+                     'value': '<a href="https://github.com/ndexcontent/ndexstringloader" target="_blank">ndexstringloader 0.2.2</a>'},
+                    {'subNetworkId': None, 'predicateString': '__iconurl', 'dataType': 'string', 'value': 'https://home.ndexbio.org/img/STRING-logo.png'}]
+        },
+        {
+            'externalId': 'a62c9252-ce13-11e9-8bd8-525400c25d22',
+            'properties':
+                [{'subNetworkId': None, 'predicateString': '@context', 'dataType': 'string',
+                  'value': '{"ncbigene": "http://identifiers.org/ncbigene/", "uniprot": "http://identifiers.org/uniprot/", "ensembl": "http://identifiers.org/ensembl/"}'},
+                 {'subNetworkId': None, 'predicateString': 'rights', 'dataType': 'string',
+                  'value': 'Attribution 4.0 International (CC BY 4.0)'},
+                 {'subNetworkId': None, 'predicateString': 'rightsHolder', 'dataType': 'string', 'value': 'STRING CONSORTIUM'},
+                 {'subNetworkId': None, 'predicateString': 'organism', 'dataType': 'string', 'value': 'Homo sapiens (human)'},
+                 {'subNetworkId': None, 'predicateString': 'networkType', 'dataType': 'list_of_string', 'value': '["interactome","ppi"]'},
+                 {'subNetworkId': None, 'predicateString': 'reference', 'dataType': 'string',
+                  'value': '<p>Szklarczyk D, Morris JH, Cook H, Kuhn M, Wyder S, Simonovic M, Santos A, ' +
+                           'Doncheva NT, Roth A, Bork P, Jensen LJ, von Mering C.<br><b> The STRING database in 2017: ' +
+                           'quality-controlled protein-protein association networks, made broadly accessible.</b><br> ' +
+                           'Nucleic Acids Res. 2017 Jan; 45:D362-68.<br> <a target="_blank" ' +
+                           'href="https://doi.org/10.1093/nar/gkw937">DOI:10.1093/nar/gkw937</a></p>'},
+                 {'subNetworkId': None, 'predicateString': 'prov:wasDerivedFrom', 'dataType': 'string',
+                  'value': 'https://stringdb-static.org/download/protein.links.full.v11.0/9606.protein.links.full.v11.0.txt.gz'},
+                 {'subNetworkId': None, 'predicateString': 'prov:wasGeneratedBy', 'dataType': 'string',
+                  'value': '<a href="https://github.com/ndexcontent/ndexstringloader" target="_blank">ndexstringloader 0.2.2</a>'},
+                 {'subNetworkId': None, 'predicateString': '__iconurl', 'dataType': 'string',
+                  'value': 'https://home.ndexbio.org/img/STRING-logo.png'}]
+        }]
+
+        network_uuid = 'a62c9252-ce13-11e9-8bd8-525400c25d22'
+        summary = loader.get_summary_from_summaries(network_summaries, network_uuid)
+        self.assertDictEqual(summary, network_summaries[1])
+
+        network_uuid = 'a2364b5e-d5d8-11e9-8bd8-525400c25d22'
+        summary = loader.get_summary_from_summaries(network_summaries, network_uuid)
+        self.assertDictEqual(summary, network_summaries[0])
+
+        network_uuid = 'non-existant uuid - expect None in summary'
+        summary = loader.get_summary_from_summaries(network_summaries, network_uuid)
+        self.assertIsNone(summary)
+
+
+    def test_0320_get_property_from_summary(self):
+        loader = NDExSTRINGLoader(self._args)
+
+        properties = {
+            'context' :
+                '{"ncbigene": "http://identifiers.org/ncbigene/", "uniprot": "http://identifiers.org/uniprot/", "ensembl": "http://identifiers.org/ensembl/"}',
+            'rights' : 'Attribution 4.0 International (CC BY 4.0)',
+            'rightsHolder' : 'STRING CONSORTIUM',
+            'organism' : 'Homo sapiens (human)',
+            'networkType' : '["interactome","ppi"]',
+            'reference' : '<p>Szklarczyk D, Morris JH, Cook H, Kuhn M, Wyder S, Simonovic M, Santos A, ' + \
+                'Doncheva NT, Roth A, Bork P, Jensen LJ, von Mering C.<br><b> The STRING database in 2017: ' + \
+                'quality-controlled protein-protein association networks, made broadly accessible.</b><br> ' + \
+                'Nucleic Acids Res. 2017 Jan; 45:D362-68.<br> <a target="_blank" ' + \
+                'href="https://doi.org/10.1093/nar/gkw937">DOI:10.1093/nar/gkw937</a></p>',
+            'prov:wasDerivedFrom' :
+                'https://stringdb-static.org/download/protein.links.full.v11.0/9606.protein.links.full.v11.0.txt.gz',
+            'prov:wasGeneratedBy' :
+                '<a href="https://github.com/ndexcontent/ndexstringloader" target="_blank">ndexstringloader 0.2.2</a>',
+            '__iconurl' : 'https://home.ndexbio.org/img/STRING-logo.png'
+        }
+
+        network_summary = {
+            'externalId': 'a2364b5e-d5d8-11e9-8bd8-525400c25d22',
+            'properties': [
+                 {'subNetworkId': None, 'predicateString': '@context', 'dataType': 'string', 'value': properties['context']},
+                 {'subNetworkId': None, 'predicateString': 'rights', 'dataType': 'string', 'value': properties['rights']},
+                 {'subNetworkId': None, 'predicateString': 'rightsHolder', 'dataType': 'string', 'value': properties['rightsHolder']},
+                 {'subNetworkId': None, 'predicateString': 'organism', 'dataType': 'string', 'value': properties['organism']},
+                 {'subNetworkId': None, 'predicateString': 'networkType', 'dataType': 'list_of_string', 'value': properties['networkType']},
+                 {'subNetworkId': None, 'predicateString': 'reference', 'dataType': 'string', 'value': properties['reference']},
+                 {'subNetworkId': None, 'predicateString': 'prov:wasDerivedFrom', 'dataType': 'string', 'value': properties['prov:wasDerivedFrom']},
+                 {'subNetworkId': None, 'predicateString': 'prov:wasGeneratedBy', 'dataType': 'string', 'value': properties['prov:wasGeneratedBy']},
+                 {'subNetworkId': None, 'predicateString': '__iconurl', 'dataType': 'string', 'value': properties['__iconurl']}
+            ]
+        }
+
+        default_value = 'some def value'
+
+        for property in network_summary['properties']:
+
+            property_name = property['predicateString']
+            actual_value = loader._get_property_from_summary(property_name, network_summary, default_value)
+
+            if property_name != 'networkType':
+                expected_value = property['value']
+                self.assertEqual(actual_value, expected_value)
+            else:
+                string_value = property['value'][1:-1]
+                string_value = string_value.replace('"', '')
+                expected_value =  string_value.split(',')
+                self.assertListEqual(actual_value, expected_value)
+
+        actual_value = loader._get_property_from_summary('doesnt exist', network_summary, default_value)
+        self.assertEqual(actual_value, default_value)
+
 
     @unittest.skip("this test actually gets human.entrez_2_string.2018.tsv.gz from STRING server; we skip it")
     def test_1000_download_and_unzip(self):
@@ -1263,6 +1408,7 @@ class TestNdexstringloader(unittest.TestCase):
 
         loader._unzip(local_downloaded_file_name_zipped)
         self.assertTrue(os.path.exists(local_downloaded_file_name_unzipped))
+
 
     @unittest.skip("this test actually downloads files from server and unpacks them;  we skip it")
     def test_1010_download_and_unzip_STRING_files(self):
@@ -1292,6 +1438,7 @@ class TestNdexstringloader(unittest.TestCase):
         self.assertTrue(os.path.exists(names_file))
         self.assertTrue(os.path.exists(entrez_file))
         self.assertTrue(os.path.exists(uniprot_file))
+
 
     @unittest.skip("this test actually creates a small network and uploads it to server; we skip it")
     def test_1020_load_to_NDEx(self):
@@ -1367,6 +1514,7 @@ class TestNdexstringloader(unittest.TestCase):
 
         ret_code = loader.load_to_NDEx()
         self.assertEqual(ret_code, 0)
+
 
     @unittest.skip("this test actually uses test_network.cx to upload and update it on server; we skip it")
     def test_0240_load_or_update_network_on_server(self):
