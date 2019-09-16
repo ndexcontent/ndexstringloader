@@ -1036,6 +1036,13 @@ class TestNdexstringloader(unittest.TestCase):
         self.assertEqual(0, res)
         mockndex.update_cx_network.assert_called()
 
+        # test exception raised by _update_network_on_server; we should received ndexloadstring.ERROR_CODE
+        # in this case
+        mockndex.update_cx_network.side_effect = Exception('unable to perform update_cx_network operation')
+        status = loader._update_network_on_server('haha', network_id='hehe')
+        self.assertEqual(mockndex.update_cx_network.call_count, 2)
+        self.assertEqual(ndexloadstring.ERROR_CODE, status)
+
 
     def test_0240_get_network_uuid(self):
 
@@ -1389,6 +1396,35 @@ class TestNdexstringloader(unittest.TestCase):
 
         actual_value = loader._get_property_from_summary('doesnt exist', network_summary, default_value)
         self.assertEqual(actual_value, default_value)
+
+
+    def test_0330_get_network_summaries_from_NDEx_server(self):
+        loader = NDExSTRINGLoader(self._args)
+        network_summaries = [
+            {'name':'Network 1', 'externalId':'111-111-111'},
+            {'name':'Network 2', 'externalId':'222-222-222'},
+            {'name':'Network 3', 'externalId':'333-333-333'},
+            {'name':'Network 4', 'externalId':'444-444-444'}
+        ]
+
+        mockndex = MagicMock()
+        mockndex.get_network_summaries_for_user = MagicMock(return_value=network_summaries)
+        loader.set_ndex_connection(mockndex)
+        user = 'AAA BBB'
+        loader.__setattr__('_user', user)
+        loader.__setattr__('_pass', 'pass')
+        loader.__setattr__('_server', 'server')
+        received_summaries = loader.get_network_summaries_from_NDEx_server()
+        self.assertEqual(network_summaries, received_summaries)
+        mockndex.get_network_summaries_for_user.assert_called_with(user)
+
+        # test exception raised by get_network_summaries_for_user; we should receive ndexloadstring.ERROR_CODE
+        # in this case
+        mockndex.get_network_summaries_for_user.side_effect = Exception('unable to get summaries from NDEx server')
+        status = loader.get_network_summaries_from_NDEx_server()
+        mockndex.get_network_summaries_for_user.assert_called_with(user)
+        self.assertEqual(mockndex.get_network_summaries_for_user.call_count, 2)
+        self.assertEqual(ndexloadstring.ERROR_CODE, status)
 
 
     @unittest.skip("this test actually gets human.entrez_2_string.2018.tsv.gz from STRING server; we skip it")
