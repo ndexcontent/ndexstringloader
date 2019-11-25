@@ -399,6 +399,40 @@ class TestNdexstringloader(unittest.TestCase):
 
         self.assertEqual((50 - (10 * verbose_level)), logger_level_set)
 
+        temp_dir = self._args['datadir']
+        args = {
+                'logconf': os.path.join(temp_dir, 'temp.conf')
+               }
+
+        args = dotdict(args)
+
+        with open (args.logconf, 'w') as f:
+            f.write('[loggers]\n')
+            f.write('keys=root\n')
+            f.write('[handlers]\n')
+            f.write('keys=stream_handler\n')
+            f.write('[formatters]\n')
+            f.write('keys=formatter\n')
+
+            f.write('[logger_root]\n')
+            f.write('level=INFO\n')
+            f.write('handlers=stream_handler\n')
+
+            f.write('[handler_stream_handler]\n')
+            f.write('class=StreamHandler\n')
+            f.write('level=INFO\n')
+            f.write('formatter=formatter\n')
+            f.write('args=(sys.stderr,)\n')
+
+            f.write('[formatter_formatter]\n')
+            f.write('format=%(asctime)s %(name)-12s %(levelname)-8s %(message)s\n')
+
+        ndexloadstring._setup_logging(args)
+        logger_level_set = ndexloadstring.logging.getLogger().getEffectiveLevel()
+
+        self.assertEqual(ndexloadstring.logging.INFO, logger_level_set)
+
+
 
     def test_0110_load_style_template(self):
 
@@ -1425,6 +1459,74 @@ class TestNdexstringloader(unittest.TestCase):
         mockndex.get_network_summaries_for_user.assert_called_with(user)
         self.assertEqual(mockndex.get_network_summaries_for_user.call_count, 2)
         self.assertEqual(ndexloadstring.ERROR_CODE, status)
+
+
+    def test_0340_get_get_template_from_server(self):
+        loader = NDExSTRINGLoader(self._args)
+        network_summaries = [
+            {'name':'Network 1', 'externalId':'111-111-111'},
+            {'name':'Network 2', 'externalId':'222-222-222'},
+            {'name':'Network 3', 'externalId':'333-333-333'},
+            {'name':'Network 4', 'externalId':'444-444-444'}
+        ]
+
+        mockndex = MagicMock()
+        mockndex.get_network_summaries_for_user = MagicMock(return_value=network_summaries)
+        loader.set_ndex_connection(mockndex)
+        user = 'AAA BBB'
+        loader.__setattr__('_user', user)
+        loader.__setattr__('_pass', 'pass')
+        loader.__setattr__('_server', 'server')
+        received_summaries = loader.get_network_summaries_from_NDEx_server()
+        self.assertEqual(network_summaries, received_summaries)
+        mockndex.get_network_summaries_for_user.assert_called_with(user)
+
+        # test exception raised by get_network_summaries_for_user; we should receive ndexloadstring.ERROR_CODE
+        # in this case
+        mockndex.get_network_summaries_for_user.side_effect = Exception('unable to get summaries from NDEx server')
+        status = loader.get_network_summaries_from_NDEx_server()
+        mockndex.get_network_summaries_for_user.assert_called_with(user)
+        self.assertEqual(mockndex.get_network_summaries_for_user.call_count, 2)
+        self.assertEqual(ndexloadstring.ERROR_CODE, status)
+
+
+    def test_0350_run(self):
+        self._args.skipdownload = True
+        loader = NDExSTRINGLoader(self._args)
+
+        loader._parse_config = MagicMock()
+        loader._load_style_template = MagicMock()
+
+        loader._is_valid_update_UUID = MagicMock(return_value=False)
+        self.assertEqual(loader.run(), ndexloadstring.ERROR_CODE)
+
+
+        loader._check_if_data_dir_exists = MagicMock(return_value=True)
+        loader._is_valid_update_UUID = MagicMock(return_value=True)
+        loader._init_ensembl_ids = MagicMock()
+        loader._populate_display_names = MagicMock()
+        loader._populate_aliases = MagicMock()
+        loader._populate_represents = MagicMock()
+        loader.create_output_tsv_file = MagicMock()
+
+        self.assertEqual(loader.run(), ndexloadstring.SUCCESS_CODE)
+
+
+        loader._check_if_data_dir_exists = MagicMock(return_value=False)
+        loader._is_valid_update_UUID = MagicMock(return_value=True)
+        loader._download_STRING_files = MagicMock(return_value=ndexloadstring.ERROR_CODE)
+        self.assertEqual(loader.run(), ndexloadstring.ERROR_CODE)
+
+        loader._download_STRING_files = MagicMock(return_value=ndexloadstring.SUCCESS_CODE)
+        loader._unpack_STRING_files = MagicMock(return_value=ndexloadstring.ERROR_CODE)
+        self.assertEqual(loader.run(), ndexloadstring.ERROR_CODE)
+
+
+
+
+
+
+
 
 
     @unittest.skip("this test actually gets human.entrez_2_string.2018.tsv.gz from STRING server; we skip it")
