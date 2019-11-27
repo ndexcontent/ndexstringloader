@@ -1562,8 +1562,6 @@ class TestNdexstringloader(unittest.TestCase):
         loader = NDExSTRINGLoader(self._args)
 
         network_summaries = None
-        network_id = None
-
 
         network_attributes = loader._init_network_attributes(network_summaries)
         loader._generate_CX_file = MagicMock()
@@ -1585,7 +1583,135 @@ class TestNdexstringloader(unittest.TestCase):
         loader.get_summary_from_summaries.assert_called()
 
 
+    def test_0380_load_to_NDEx(self):
+        loader = NDExSTRINGLoader(self._args)
 
+        loader.create_ndex_connection = MagicMock(return_value=None)
+        self.assertEqual(loader.load_to_NDEx(), ndexloadstring.ERROR_CODE)
+
+
+        user_name = 'aaa'
+        password = 'aaa'
+        server = 'dev.ndexbio.org'
+        loader.__setattr__('_pass', password)
+        loader.__setattr__('_server', server)
+        loader.__setattr__('_user', user_name)
+
+        loader.create_ndex_connection = MagicMock()
+        loader.get_network_summaries_from_NDEx_server = MagicMock(return_value=ndexloadstring.ERROR_CODE)
+        self.assertEqual(loader.load_to_NDEx(), ndexloadstring.ERROR_CODE)
+
+
+        network_summaries = [
+            {'name':'Network 1', 'externalId':'111-111-111'},
+            {'name':'Network 2', 'externalId':'222-222-222'},
+            {'name':'Network 3', 'externalId':'333-333-333'},
+            {'name':'Network 4', 'externalId':'444-444-444'}
+        ]
+        loader.get_network_summaries_from_NDEx_server = MagicMock(return_value=network_summaries)
+        loader._template_UUID = 'e9a889d1-1b49-11e9-a05d-525400c25d22'
+        loader.get_template_from_server = MagicMock(return_value=ndexloadstring.ERROR_CODE)
+        self.assertEqual(loader.load_to_NDEx(), ndexloadstring.ERROR_CODE)
+        loader.get_template_from_server.assert_called_with(network_summaries)
+
+
+        loader.get_template_from_server = MagicMock()
+        index = 2
+        network_name = network_summaries[index]['name']
+        loader._update_UUID = network_summaries[index]['externalId']
+        loader._get_network_name = MagicMock(return_value=network_name)
+
+        loader.prepare_CX = MagicMock()
+        loader._update_network_on_server = MagicMock(return_value=ndexloadstring.ERROR_CODE)
+        self.assertEqual(loader.load_to_NDEx(), ndexloadstring.ERROR_CODE)
+
+        loader._update_network_on_server = MagicMock(return_value=ndexloadstring.SUCCESS_CODE)
+        self.assertEqual(loader.load_to_NDEx(), ndexloadstring.SUCCESS_CODE)
+        loader._update_network_on_server.assert_called_with(network_name, loader._update_UUID)
+
+        loader.get_network_uuid = MagicMock(return_value=ndexloadstring.ERROR_CODE)
+        self.assertEqual(loader.load_to_NDEx(), ndexloadstring.ERROR_CODE)
+        loader.get_network_uuid.assert_called_with(network_name, network_summaries)
+
+
+        # test the else branch of load_to_NDEx() where self._update_UUID is not specified
+        loader._update_UUID = None
+        self.assertEqual(loader.load_to_NDEx(), ndexloadstring.ERROR_CODE)
+
+        loader.get_network_uuid = MagicMock(return_value=None)
+        loader._load_network_to_server = MagicMock(return_value=ndexloadstring.ERROR_CODE)
+        self.assertEqual(loader.load_to_NDEx(), ndexloadstring.ERROR_CODE)
+        loader._load_network_to_server.assert_called_with(network_name)
+        loader._load_network_to_server = MagicMock(return_value=ndexloadstring.SUCCESS_CODE)
+        self.assertEqual(loader.load_to_NDEx(), ndexloadstring.SUCCESS_CODE)
+
+
+        network_id = '84a129d1-1b49-11e9-a05d-525400c25daa'
+        loader.get_network_uuid = MagicMock(return_value=network_id)
+        loader._update_network_on_server = MagicMock(return_value=ndexloadstring.SUCCESS_CODE)
+        self.assertEqual(loader.load_to_NDEx(), ndexloadstring.SUCCESS_CODE)
+        loader._update_network_on_server.assert_called_with(network_name, network_id)
+
+        loader._update_network_on_server = MagicMock(return_value=ndexloadstring.ERROR_CODE)
+        self.assertEqual(loader.load_to_NDEx(), ndexloadstring.ERROR_CODE)
+        loader._update_network_on_server.assert_called_with(network_name, network_id)
+
+
+        # test the  branch where user has to manually enter 'y' or 'n'. This happens when user wants to update
+        # network on server and enters UUID of network to be updated, but network is not found. In this case (s)he
+        # is prompted whether to create a new network on server
+        loader.get_summary_from_summaries = MagicMock(return_value=None)
+        loader._update_UUID = 'c9a889d4-1b49-11e9-a05d-525400c25d23'
+
+        original_input = __builtins__['input']
+        __builtins__['input'] = lambda _: 'n'
+        self.assertEqual(loader.load_to_NDEx(), ndexloadstring.SUCCESS_CODE)
+
+        __builtins__['input'] = lambda _: 'y'
+        loader.prepare_CX = MagicMock()
+        loader._load_network_to_server = MagicMock(return_value=ndexloadstring.SUCCESS_CODE)
+        self.assertEqual(loader.load_to_NDEx(), ndexloadstring.SUCCESS_CODE)
+        loader._load_network_to_server.assert_called_with(network_name)
+
+
+
+    def test_0390_main(self):
+
+        loader = NDExSTRINGLoader(self._args)
+        temp_dir = self._args['datadir']
+
+        ndexloadstring.NDExSTRINGLoader = MagicMock()
+        ndexloadstring.NDExSTRINGLoader.return_value.run.return_value = ndexloadstring.ERROR_CODE
+
+        confile = os.path.join(temp_dir, 'some.conf')
+        profile = os.path.join(temp_dir, 'some.prof')
+
+        with open(confile, 'w') as f:
+            f.write("""[hi]
+            {user} = bob
+            {pw} = smith
+            {server} = dev.ndexbio.org""".format(user=NDExUtilConfig.USER,
+                                                 pw=NDExUtilConfig.PASSWORD,
+                                                 server=NDExUtilConfig.SERVER))
+
+        res = ndexloadstring.main(['myprog.py', '--conf', confile, '--profile', profile, temp_dir])
+        self.assertEqual(res, ndexloadstring.ERROR_CODE)
+
+        ndexloadstring.NDExSTRINGLoader.return_value.run.return_value = ndexloadstring.SUCCESS_CODE
+        ndexloadstring.NDExSTRINGLoader.return_value.load_to_NDEx.return_value = ndexloadstring.ERROR_CODE
+        res = ndexloadstring.main(['myprog.py', '--conf', confile, '--profile', profile, temp_dir])
+        self.assertEqual(res, ndexloadstring.ERROR_CODE)
+
+        ndexloadstring.NDExSTRINGLoader.return_value.load_to_NDEx.return_value = ndexloadstring.SUCCESS_CODE
+        res = ndexloadstring.main(['myprog.py', '--conf', confile, '--profile', profile, temp_dir])
+        self.assertEqual(res, ndexloadstring.SUCCESS_CODE)
+
+
+        ndexloadstring.NDExSTRINGLoader = MagicMock(side_effect=Exception('Exception for unit testing'))
+        ndexloadstring.e = MagicMock()
+        ndexloadstring.e.__name__ = 'UnitTestFakeException'
+        res = ndexloadstring.main(['myprog.py', '--conf', confile, '--profile', profile, temp_dir])
+        self.assertEqual(res, ndexloadstring.ERROR_CODE)
 
 
     @unittest.skip("this test actually gets human.entrez_2_string.2018.tsv.gz from STRING server; we skip it")
@@ -1635,65 +1761,6 @@ class TestNdexstringloader(unittest.TestCase):
         self.assertTrue(os.path.exists(names_file))
         self.assertTrue(os.path.exists(entrez_file))
         self.assertTrue(os.path.exists(uniprot_file))
-
-
-    def test_1020_load_to_NDEx(self):
-        loader = NDExSTRINGLoader(self._args)
-
-        loader.create_ndex_connection = MagicMock(return_value=None)
-        self.assertEqual(loader.load_to_NDEx(), ndexloadstring.ERROR_CODE)
-
-
-        user_name = 'aaa'
-        password = 'aaa'
-        server = 'dev.ndexbio.org'
-        loader.__setattr__('_pass', password)
-        loader.__setattr__('_server', server)
-        loader.__setattr__('_user', user_name)
-
-        loader.create_ndex_connection = MagicMock()
-        loader.get_network_summaries_from_NDEx_server = MagicMock(return_value=ndexloadstring.ERROR_CODE)
-        self.assertEqual(loader.load_to_NDEx(), ndexloadstring.ERROR_CODE)
-
-
-        network_summaries = [
-            {'name':'Network 1', 'externalId':'111-111-111'},
-            {'name':'Network 2', 'externalId':'222-222-222'},
-            {'name':'Network 3', 'externalId':'333-333-333'},
-            {'name':'Network 4', 'externalId':'444-444-444'}
-        ]
-        loader.get_network_summaries_from_NDEx_server = MagicMock(return_value=network_summaries)
-        loader._template_UUID = 'e9a889d1-1b49-11e9-a05d-525400c25d22'
-        loader.get_template_from_server = MagicMock(return_value=ndexloadstring.ERROR_CODE)
-        self.assertEqual(loader.load_to_NDEx(), ndexloadstring.ERROR_CODE)
-        loader.get_template_from_server.assert_called_with(network_summaries)
-
-
-        loader.get_template_from_server = MagicMock()
-        index = 2
-        network_name = network_summaries[index]['name']
-        loader._update_UUID = network_summaries[index]['externalId']
-        self._get_network_name = MagicMock(return_value=network_name)
-
-        loader.prepare_CX = MagicMock()
-        loader._update_network_on_server = MagicMock(return_value=ndexloadstring.ERROR_CODE)
-        self.assertEqual(loader.load_to_NDEx(), ndexloadstring.ERROR_CODE)
-
-        loader._update_network_on_server = MagicMock(return_value=ndexloadstring.SUCCESS_CODE)
-        self.assertEqual(loader.load_to_NDEx(), ndexloadstring.SUCCESS_CODE)
-
-        loader.get_network_uuid = MagicMock(return_value=ndexloadstring.ERROR_CODE)
-        self.assertEqual(loader.load_to_NDEx(), ndexloadstring.ERROR_CODE)
-
-
-        # test the els branch of load_to_NDEx() where self._update_UUID is not specified
-        #loader._update_UUID = None
-
-
-
-
-
-
 
 
     @unittest.skip("this test actually uses test_network.cx to upload and update it on server; we skip it")
