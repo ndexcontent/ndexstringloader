@@ -1043,7 +1043,7 @@ class TestNdexstringloader(unittest.TestCase):
             f.write('hello')
         loader = NDExSTRINGLoader(self._args)
         mockndex = MagicMock()
-        mockndex.save_cx_stream_as_new_network = MagicMock(side_effect=Exception('hi'))
+        mockndex.save_cx_stream_as_new_network = MagicMock(side_effect=Exception())
         loader.set_ndex_connection(mockndex)
         loader.__setattr__('_user', 'u')
         loader.__setattr__('_pass', 'p')
@@ -1072,7 +1072,7 @@ class TestNdexstringloader(unittest.TestCase):
 
         # test exception raised by _update_network_on_server; we should received ndexloadstring.ERROR_CODE
         # in this case
-        mockndex.update_cx_network.side_effect = Exception('unable to perform update_cx_network operation')
+        mockndex.update_cx_network.side_effect = Exception()
         status = loader._update_network_on_server('haha', network_id='hehe')
         self.assertEqual(mockndex.update_cx_network.call_count, 2)
         self.assertEqual(ndexloadstring.ERROR_CODE, status)
@@ -1454,14 +1454,14 @@ class TestNdexstringloader(unittest.TestCase):
 
         # test exception raised by get_network_summaries_for_user; we should receive ndexloadstring.ERROR_CODE
         # in this case
-        mockndex.get_network_summaries_for_user.side_effect = Exception('unable to get summaries from NDEx server')
+        mockndex.get_network_summaries_for_user.side_effect = Exception()
         status = loader.get_network_summaries_from_NDEx_server()
         mockndex.get_network_summaries_for_user.assert_called_with(user)
         self.assertEqual(mockndex.get_network_summaries_for_user.call_count, 2)
         self.assertEqual(ndexloadstring.ERROR_CODE, status)
 
 
-    def test_0340_get_get_template_from_server(self):
+    def test_0340_get_network_summaries_from_NDEx_server(self):
         loader = NDExSTRINGLoader(self._args)
         network_summaries = [
             {'name':'Network 1', 'externalId':'111-111-111'},
@@ -1483,7 +1483,7 @@ class TestNdexstringloader(unittest.TestCase):
 
         # test exception raised by get_network_summaries_for_user; we should receive ndexloadstring.ERROR_CODE
         # in this case
-        mockndex.get_network_summaries_for_user.side_effect = Exception('unable to get summaries from NDEx server')
+        mockndex.get_network_summaries_for_user.side_effect = Exception()
         status = loader.get_network_summaries_from_NDEx_server()
         mockndex.get_network_summaries_for_user.assert_called_with(user)
         self.assertEqual(mockndex.get_network_summaries_for_user.call_count, 2)
@@ -1523,7 +1523,66 @@ class TestNdexstringloader(unittest.TestCase):
 
 
 
+    def test_0360_get_template_from_server(self):
+        loader = NDExSTRINGLoader(self._args)
 
+        network_summaries = [
+            {'name':'Network 1', 'externalId':'111-111-111'},
+            {'name':'Network 2', 'externalId':'222-222-222'},
+            {'name':'Network 3', 'externalId':'333-333-333'},
+            {'name':'Network 4', 'externalId':'444-444-444'}
+        ]
+
+        loader.get_summary_from_summaries = MagicMock(return_value=None)
+        loader._template_UUID = 'e9a889d1-1b49-11e9-a05d-525400c25d22'
+        loader._server = 'dev.ndexbio.org'
+        loader._user = 'Squirrel'
+        loader._pass = 'Peanut'
+
+        self.assertEqual(loader.get_template_from_server(network_summaries), ndexloadstring.ERROR_CODE)
+
+
+        loader.get_summary_from_summaries = MagicMock(return_value=[{'name':'Network 3', 'externalId':'333-333-333'}])
+        ndex2.create_nice_cx_from_server = Exception('cannot get template from server!')
+
+        try:
+            status_code = loader.get_template_from_server(network_summaries)
+            self.fail('Expected exception')
+        except Exception as fe:
+            self.assertEqual(status_code, ndexloadstring.ERROR_CODE)
+
+
+        ndex2.create_nice_cx_from_server = MagicMock(return_value='template')
+        status_code = loader.get_template_from_server(network_summaries)
+        self.assertEqual(status_code, ndexloadstring.SUCCESS_CODE)
+
+
+
+    def test_0370_prepare_CX(self):
+        loader = NDExSTRINGLoader(self._args)
+
+        network_summaries = None
+        network_id = None
+
+
+        network_attributes = loader._init_network_attributes(network_summaries)
+        loader._generate_CX_file = MagicMock()
+        loader.get_summary_from_summaries = MagicMock()
+        loader.prepare_CX()
+
+        loader._generate_CX_file.assert_called_with(network_attributes)
+        loader.get_summary_from_summaries.assert_not_called()
+
+
+        network_summaries = [
+            {'name':'Network 1', 'externalId':'111-111-111'},
+            {'name':'Network 2', 'externalId':'222-222-222'},
+            {'name':'Network 3', 'externalId':'333-333-333'},
+            {'name':'Network 4', 'externalId':'444-444-444'}
+        ]
+        loader.prepare_CX(network_summaries)
+        loader._generate_CX_file.assert_called()
+        loader.get_summary_from_summaries.assert_called()
 
 
 
@@ -1578,80 +1637,63 @@ class TestNdexstringloader(unittest.TestCase):
         self.assertTrue(os.path.exists(uniprot_file))
 
 
-    @unittest.skip("this test actually creates a small network and uploads it to server; we skip it")
     def test_1020_load_to_NDEx(self):
+        loader = NDExSTRINGLoader(self._args)
+
+        loader.create_ndex_connection = MagicMock(return_value=None)
+        self.assertEqual(loader.load_to_NDEx(), ndexloadstring.ERROR_CODE)
+
+
         user_name = 'aaa'
         password = 'aaa'
         server = 'dev.ndexbio.org'
-
-        loader = NDExSTRINGLoader(self._args)
         loader.__setattr__('_pass', password)
         loader.__setattr__('_server', server)
-
-
-        self._args.style = ndexloadstring.get_style()
-
-        # no user name was set - load_to_NDEx() is expected to fail to create connection with NDEx server
-        ret_code = loader.load_to_NDEx()
-        self.assertEqual(ret_code, 2)
-
         loader.__setattr__('_user', user_name)
 
-        # _cutoffscore is not used in this test for filtering rows of initial file, it is used for generating network name
-        loader.__setattr__('_cutoffscore', '0.999')
+        loader.create_ndex_connection = MagicMock()
+        loader.get_network_summaries_from_NDEx_server = MagicMock(return_value=ndexloadstring.ERROR_CODE)
+        self.assertEqual(loader.load_to_NDEx(), ndexloadstring.ERROR_CODE)
 
-        tsv_header = [
-            'name1',
-            'represents1',
-            'alias1',
-            'name2',
-            'represents2',
-            'alias2'
-            'neighborhood',
-            'neighborhood_transferred',
-            'fusion',
-            'cooccurence',
-            'homology',
-            'coexpression',
-            'coexpression_transferred',
-            'experiments',
-            'experiments_transferred',
-            'database',
-            'database_transferred',
-            'textmining',
-            'textmining_transferred',
-            'combined_score'
+
+        network_summaries = [
+            {'name':'Network 1', 'externalId':'111-111-111'},
+            {'name':'Network 2', 'externalId':'222-222-222'},
+            {'name':'Network 3', 'externalId':'333-333-333'},
+            {'name':'Network 4', 'externalId':'444-444-444'}
         ]
-
-        tsv_header_str = '\t'.join(tsv_header) + '\n'
-
-        tsv_body = [
-            'VCL\tuniprot:P18206\tncbigene:7414|ensembl:ENSP00000211998\tTLN1\tuniprot:Q9Y490\tncbigene:7094|ensembl:ENSP00000316029\t0\t0\t0\t0\t0\t106\t82\t870\t809\t900\t0\t701\t538\t999',
-            'VCL\tuniprot:P18206\tncbigene:7414|ensembl:ENSP00000211998\tPXN\tuniprot:P49023\tncbigene:5829|ensembl:ENSP00000267257\t0\t0\t0\t0\t0\t76\t63\t888\t377\t900\t0\t957\t534\t999',
-            'VCL\tuniprot:P18206\tncbigene:7414|ensembl:ENSP00000211998\tACTN1\tuniprot:P12814\tncbigene:87|ensembl:ENSP00000377941\t0\t0\t0\t0\t0\t242\t81\t870\t809\t900\t0\t556\t504\t999'
-        ]
-
-        temp_dir = self._args['datadir']
-        temp_links_tsv_file = os.path.join(temp_dir, '__protein_links_tmp__.tsv')
-        temp_cx_network = os.path.join(temp_dir, '__networks__.cx')
+        loader.get_network_summaries_from_NDEx_server = MagicMock(return_value=network_summaries)
+        loader._template_UUID = 'e9a889d1-1b49-11e9-a05d-525400c25d22'
+        loader.get_template_from_server = MagicMock(return_value=ndexloadstring.ERROR_CODE)
+        self.assertEqual(loader.load_to_NDEx(), ndexloadstring.ERROR_CODE)
+        loader.get_template_from_server.assert_called_with(network_summaries)
 
 
-        with open(temp_links_tsv_file, 'w') as f:
-            f.write(tsv_header_str)
-            for t in tsv_body:
-                f.write(t + '\n')
-            f.flush()
+        loader.get_template_from_server = MagicMock()
+        index = 2
+        network_name = network_summaries[index]['name']
+        loader._update_UUID = network_summaries[index]['externalId']
+        self._get_network_name = MagicMock(return_value=network_name)
 
-        self._args.style = ndexloadstring.get_style()
+        loader.prepare_CX = MagicMock()
+        loader._update_network_on_server = MagicMock(return_value=ndexloadstring.ERROR_CODE)
+        self.assertEqual(loader.load_to_NDEx(), ndexloadstring.ERROR_CODE)
 
-        loader.__setattr__('_output_tsv_file_name', temp_links_tsv_file)
-        loader.__setattr__('_cx_network', temp_cx_network)
-        loader.__setattr__('_load_plan', ndexloadstring.get_load_plan())
+        loader._update_network_on_server = MagicMock(return_value=ndexloadstring.SUCCESS_CODE)
+        self.assertEqual(loader.load_to_NDEx(), ndexloadstring.SUCCESS_CODE)
 
-        loader._load_style_template()
+        loader.get_network_uuid = MagicMock(return_value=ndexloadstring.ERROR_CODE)
+        self.assertEqual(loader.load_to_NDEx(), ndexloadstring.ERROR_CODE)
 
-        ret_code = loader.load_to_NDEx()
-        self.assertEqual(ret_code, 0)
+
+        # test the els branch of load_to_NDEx() where self._update_UUID is not specified
+        #loader._update_UUID = None
+
+
+
+
+
+
 
 
     @unittest.skip("this test actually uses test_network.cx to upload and update it on server; we skip it")

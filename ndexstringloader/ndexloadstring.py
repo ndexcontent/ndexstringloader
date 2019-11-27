@@ -810,11 +810,10 @@ class NDExSTRINGLoader(object):
 
         if summaries is None:
             network_summary = None
-            network_attributes = self._init_network_attributes(network_summary)
         else:
             network_summary = self.get_summary_from_summaries(summaries, network_id)
-            network_attributes = self._init_network_attributes(network_summary)
 
+        network_attributes = self._init_network_attributes(network_summary)
         self._generate_CX_file(network_attributes)
 
 
