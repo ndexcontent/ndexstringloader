@@ -665,8 +665,8 @@ class NDExSTRINGLoader(object):
             + str(ndexstringloader.__version__) + '</a>'
         net_attributes['prov:wasGeneratedBy'] = self._get_property_from_summary('prov:wasGeneratedBy', summary, wasGeneratedBy)
 
-        __iconurl = self._iconurl
-        net_attributes['__iconurl'] =  self._get_property_from_summary('__iconurl', summary, __iconurl)
+        net_attributes['__iconurl'] = self._iconurl if self._iconurl \
+            else self._get_property_from_summary('__iconurl', summary, self._iconurl)
 
         return net_attributes
 

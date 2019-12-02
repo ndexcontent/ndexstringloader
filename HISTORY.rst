@@ -2,6 +2,10 @@
 History
 =======
 
+0.2.4 (2019-12-01)
+------------------
+* Fixed defect UD-462 Verify new network attributes are correctly set in ndexstringloader (https://ndexbio.atlassian.net/browse/UD-462).
+
 0.2.3 (2019-09-13)
 ------------------
 * If user loads the entire STRING network (i.e., runs the script with --cutoffscore 0), the name of the resulting netwpork should be "STRING - Human Protein Links", not "STRING - Human Protein Links - High Confidence".

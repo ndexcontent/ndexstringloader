@@ -150,7 +150,7 @@
             },
             {
                 "n": "prov:wasGeneratedBy",
-                "v": "<a href=\"https://github.com/ndexcontent/ndexstringloader\" target=\"_blank\">ndexstringloader 0.2.3</a>"
+                "v": "<a href=\"https://github.com/ndexcontent/ndexstringloader\" target=\"_blank\">ndexstringloader 0.2.4</a>"
             },
             {
                 "n": "__iconurl",
