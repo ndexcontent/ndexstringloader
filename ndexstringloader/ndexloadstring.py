@@ -563,7 +563,6 @@ class NDExSTRINGLoader(object):
         :return:
         """
         self._parse_config()
-        self._load_style_template()
 
         if not self._is_valid_update_UUID():
            print('Invalid UUID value for {}: {}'.format('--update', self._update_UUID))
@@ -843,6 +842,9 @@ class NDExSTRINGLoader(object):
             # load template from server
             if self.get_template_from_server(summaries) == ERROR_CODE:
                 return  ERROR_CODE
+        else:
+            # load template from style file
+            self._load_style_template()
 
         if self._update_UUID:
             network_summary = self.get_summary_from_summaries(summaries, self._update_UUID)

@@ -1495,7 +1495,6 @@ class TestNdexstringloader(unittest.TestCase):
         loader = NDExSTRINGLoader(self._args)
 
         loader._parse_config = MagicMock()
-        loader._load_style_template = MagicMock()
 
         loader._is_valid_update_UUID = MagicMock(return_value=False)
         self.assertEqual(loader.run(), ndexloadstring.ERROR_CODE)
@@ -1673,6 +1672,13 @@ class TestNdexstringloader(unittest.TestCase):
         self.assertEqual(loader.load_to_NDEx(), ndexloadstring.SUCCESS_CODE)
         loader._load_network_to_server.assert_called_with(network_name)
 
+
+        # emulate getting style from local disk; we already emulated getting style from server above
+        # with loader._template_UUID = 'e9a889d1-1b49-11e9-a05d-525400c25d22'
+        loader._load_style_template = MagicMock()
+        loader._template_UUID = None
+        self.assertEqual(loader.load_to_NDEx(), ndexloadstring.SUCCESS_CODE)
+        loader._load_style_template.assert_called_with()
 
 
     def test_0390_main(self):
