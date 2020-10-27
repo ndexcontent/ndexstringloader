@@ -16,9 +16,12 @@ from ndexutil.tsv.streamtsvloader import StreamTSVLoader
 import requests
 import ndex2
 
-
+from uuid import UUID
 
 logger = logging.getLogger(__name__)
+
+SUCCESS_CODE = 0
+ERROR_CODE = 2
 
 STYLE = 'style.cx'
 
@@ -66,6 +69,8 @@ def _parse_arguments(desc, args):
     parser = argparse.ArgumentParser(description=desc,
                                      formatter_class=help_fm)
 
+    network_group = parser.add_mutually_exclusive_group()
+
     parser.add_argument('datadir', help='Directory where string '
                                         'data is downloaded to '
                                         'and processed from')
@@ -88,8 +93,7 @@ def _parse_arguments(desc, args):
                                        '(default ~/' +
                                        NDExUtilConfig.CONFIG_FILE)
     parser.add_argument('--loadplan', help='Load plan json file', default=get_load_plan())
-    parser.add_argument('--style', help='Path to NDEx CX file to use for styling'
-                        'networks', default=get_style())
+    network_group.add_argument('--style', help='Path to NDEx CX file to use for styling networks', default=get_style())
     parser.add_argument('--iconurl', help='URL for __iconurl parameter '
                                           '(default ' + DEFAULT_ICONURL + ')',
                         default=DEFAULT_ICONURL)
@@ -107,9 +111,13 @@ def _parse_arguments(desc, args):
                         help='If set, skips download of data from string'
                              'and assumes data already resides in <datadir>'
                              'directory')
+
+    network_group.add_argument('--template',  help='UUID of network to use for styling networks')
+
+    parser.add_argument('--update', help='UUID of network to update')
+
     parser.add_argument('--version', action='version',
-                        version=('%(prog)s ' +
-                                 ndexstringloader.__version__))
+                        version=('%(prog)s ' + ndexstringloader.__version__))
 
     parser.add_argument('--stringversion', help='Version of STRING DB (default 11.0)',
                         default='11.0')
@@ -159,6 +167,9 @@ class NDExSTRINGLoader(object):
         self._iconurl = args.iconurl
         self._template = None
         self._ndex = None
+
+        self._template_UUID = args.template
+        self._update_UUID = args.update
 
         self._output_tsv_file_columns = [
             "name1",
@@ -231,9 +242,14 @@ class NDExSTRINGLoader(object):
         logger.info('downloading {} to {}...'.format(url, local_file_name))
 
         r = requests.get(url)
+        if r.status_code != 200:
+            return r.status_code
+
         with open(local_file_name, "wb") as code:
             code.write(r.content)
             logger.debug('downloaded {} to {}\n'.format(url, local_file_name))
+
+        return SUCCESS_CODE
 
     def _unzip(self, zip_file):
         local_file_name = zip_file[:-3]
@@ -246,26 +262,49 @@ class NDExSTRINGLoader(object):
 
         os.remove(zip_file)
         logger.debug('{} unzipped and removed\n'.format(zip_file))
+        return SUCCESS_CODE
 
     def _download_STRING_files(self):
         """
         Parses config
         :return:
         """
-        self._download(self._protein_links_url, self._full_file_name + '.gz')
-        self._download(self._names_file_url, self._names_file + '.gz')
-        self._download(self._entrez_ids_file_url, self._entrez_file + '.gz')
-        self._download(self._uniprot_ids_file_url, self._uniprot_file + '.gz')
+        ret_code = self._download(self._protein_links_url, self._full_file_name + '.gz')
+        if (ret_code != SUCCESS_CODE):
+            return ret_code
+
+        ret_code = self._download(self._names_file_url, self._names_file + '.gz')
+        if (ret_code != SUCCESS_CODE):
+            return ret_code
+
+        ret_code = self._download(self._entrez_ids_file_url, self._entrez_file + '.gz')
+        if (ret_code != SUCCESS_CODE):
+            return ret_code
+
+        return self._download(self._uniprot_ids_file_url, self._uniprot_file + '.gz')
 
     def _unpack_STRING_files(self):
         """
         Parses config
         :return:
         """
-        self._unzip(self._full_file_name + '.gz')
-        self._unzip(self._entrez_file + '.gz')
-        self._unzip(self._names_file + '.gz')
-        self._unzip(self._uniprot_file + '.gz')
+        ret_code = self._unzip(self._full_file_name + '.gz')
+        if (ret_code != SUCCESS_CODE):
+            return ERROR_CODE
+
+        ret_code = self._unzip(self._entrez_file + '.gz')
+        if (ret_code != SUCCESS_CODE):
+            return ERROR_CODE
+
+        ret_code = self._unzip(self._names_file + '.gz')
+        if (ret_code != SUCCESS_CODE):
+            return ERROR_CODE
+
+        ret_code = self._unzip(self._uniprot_file + '.gz')
+        if (ret_code != SUCCESS_CODE):
+            return ERROR_CODE
+
+        return SUCCESS_CODE
 
     def _get_name_rep_alias(self, ensembl_protein_id):
         name_rep_alias = self.ensembl_ids[ensembl_protein_id]
@@ -357,10 +396,10 @@ class NDExSTRINGLoader(object):
                                      '\t'.join(x for x in columns_in_row[2:])
 
                         o_f.write(tsv_string)
-                        row_count = + 1
+                        row_count += 1
 
-            logger.debug('Created {} ({:,} lines) \n'.format(output_file, row_count))
-            logger.debug('{:,} duplicate rows detected \n'.format(dup_count))
+        logger.debug('Created {} ({:,} lines) \n'.format(output_file, row_count))
+        logger.debug('{:,} duplicate rows detected \n'.format(dup_count))
 
 
     def _check_if_data_dir_exists(self):
@@ -504,6 +543,19 @@ class NDExSTRINGLoader(object):
         logger.debug('Populated {:,} represents from {}\n'.format(row_count, self._uniprot_file))
 
 
+    def _is_valid_update_UUID(self):
+        is_valid = True
+
+        if self._update_UUID is not None:
+            try:
+                uuid_obj = UUID(self._update_UUID)
+                is_valid = str(uuid_obj) == self._update_UUID
+            except ValueError:
+                is_valid = False
+
+        return is_valid
+
+
     def run(self):
         """
         Runs content loading for NDEx STRING Content Loader
@@ -511,72 +563,109 @@ class NDExSTRINGLoader(object):
         :return:
         """
         self._parse_config()
-        self._load_style_template()
+
+        if not self._is_valid_update_UUID():
+           print('Invalid UUID value for {}: {}'.format('--update', self._update_UUID))
+           return ERROR_CODE
 
         data_dir_existed = self._check_if_data_dir_exists()
 
         if self._args.skipdownload is False or data_dir_existed is False:
-            self._download_STRING_files()
-            self._unpack_STRING_files()
+            ret_code = self._download_STRING_files()
+            if ret_code != SUCCESS_CODE:
+                return ERROR_CODE
 
+            ret_code = self._unpack_STRING_files()
+            if ret_code != SUCCESS_CODE:
+                return ERROR_CODE
 
         self._init_ensembl_ids()
-
 
         #populate name - 4.display name -> becomes name
         self._populate_display_names()
 
-
         # populate alias - 3. node string id -> becomes alias, for example
         # ensembl:ENSP00000000233|ncbigene:857
-
         self._populate_aliases()
-
 
         self._populate_represents()
 
-
         self.create_output_tsv_file()
 
-        return 0
+        return SUCCESS_CODE
 
 
-    def _init_network_attributes(self):
+    def _get_network_name(self):
+
+        if self._cutoffscore == 0:
+            network_name = 'STRING - Human Protein Links'
+        else:
+            network_name = \
+                'STRING - Human Protein Links - High Confidence (Score >= ' + str(self._cutoffscore) + ')'
+
+        return network_name
+
+
+    def _get_property_from_summary(self, property, summary, default_value):
+        if summary is None:
+            return default_value
+
+        for prop in summary['properties']:
+            if property == prop['predicateString']:
+                if prop['dataType'] and prop['dataType'] == 'list_of_string':
+                    string_value = prop['value'][1:-1]
+                    string_value = string_value.replace('"', '')
+                    return string_value.split(',')
+                else:
+                    return prop['value']
+
+        return default_value
+
+
+
+
+
+    def _init_network_attributes(self, summary=None):
         net_attributes = {}
 
-        net_attributes['name'] = 'STRING - Human Protein Links - High Confidence (Score >= ' \
-                                 + str(self._cutoffscore) + ')'
+        net_attributes['name'] = self._get_network_name() if summary is None else summary['name']
 
         net_attributes['description'] = '<br>This network contains high confidence (score >= ' \
                     + str(self._cutoffscore) + ') human protein links with combined scores. ' \
                     + 'Edge color was mapped to the combined score value using a gradient from light grey ' \
-                    + '(low Score) to black (high Score).'
+                    + '(low Score) to black (high Score).' if summary is None else summary['description']
 
-        net_attributes['rights'] = 'Attribution 4.0 International (CC BY 4.0)'
+        rights = 'Attribution 4.0 International (CC BY 4.0)'
+        net_attributes['rights'] = self._get_property_from_summary('rights', summary, rights)
 
-        net_attributes['rightsHolder'] = 'STRING CONSORTIUM'
+        rightsHolder = 'STRING CONSORTIUM'
+        net_attributes['rightsHolder'] = self._get_property_from_summary('rightsHolder', summary, rightsHolder)
 
-        net_attributes['version'] = self._string_version
+        net_attributes['version'] = self._string_version if summary is None else summary['version']
 
-        net_attributes['organism'] = 'Homo sapiens (human)'
+        organism = 'Homo sapiens (human)'
+        net_attributes['organism'] = self._get_property_from_summary('organism', summary, organism)
 
-        net_attributes['networkType'] = ['interactome', 'ppi']
+        networkType = ['interactome', 'ppi']
+        net_attributes['networkType'] = self._get_property_from_summary('networkType', summary, networkType)
 
-        net_attributes['reference'] = '<p>Szklarczyk D, Morris JH, Cook H, Kuhn M, Wyder S, ' \
+        reference = '<p>Szklarczyk D, Morris JH, Cook H, Kuhn M, Wyder S, ' \
                     + 'Simonovic M, Santos A, Doncheva NT, Roth A, Bork P, Jensen LJ, von Mering C.<br><b> ' \
                     + 'The STRING database in 2017: quality-controlled protein-protein association networks, ' \
                     + 'made broadly accessible.</b><br>Nucleic Acids Res. 2017 Jan; ' \
                     + '45:D362-68.<br> <a target="_blank" href="https://doi.org/10.1093/nar/gkw937">' \
                     + 'DOI:10.1093/nar/gkw937</a></p>'
+        net_attributes['reference'] = self._get_property_from_summary('reference', summary, reference)
 
-        net_attributes['prov:wasDerivedFrom'] = \
-            'https://stringdb-static.org/download/protein.links.full.v11.0/9606.protein.links.full.v11.0.txt.gz'
+        wasDerivedFrom = 'https://stringdb-static.org/download/protein.links.full.v11.0/9606.protein.links.full.v11.0.txt.gz'
+        net_attributes['prov:wasDerivedFrom'] = self._get_property_from_summary('prov:wasDerivedFrom', summary, wasDerivedFrom)
 
-        net_attributes['prov:wasGeneratedBy'] = \
-            '<a href="https://github.com/ndexcontent/ndexstringloader" target="_blank">ndexstringloader ' \
+        wasGeneratedBy = '<a href="https://github.com/ndexcontent/ndexstringloader" target="_blank">ndexstringloader ' \
             + str(ndexstringloader.__version__) + '</a>'
+        net_attributes['prov:wasGeneratedBy'] = self._get_property_from_summary('prov:wasGeneratedBy', summary, wasGeneratedBy)
 
-        net_attributes['__iconurl'] = self._iconurl
+        net_attributes['__iconurl'] = self._iconurl if self._iconurl \
+            else self._get_property_from_summary('__iconurl', summary, self._iconurl)
 
         return net_attributes
 
@@ -606,29 +695,38 @@ class NDExSTRINGLoader(object):
 
         logger.debug('CX file for network {} generated\n'.format(network_attributes['name']))
 
-    def _load_or_update_network_on_server(self, network_name, network_id=None):
-        ret_code = 0
-        logger.debug('updating network {} on server {} '
-                     'for user {}...'.format(network_name,
-                                             str(self._server),
-                                             str(self._user)))
+
+    def _update_network_on_server(self, network_name, network_id=None):
+        ret_code = SUCCESS_CODE
+        logger.info('updating network {} on server {} '
+                     'for user {}...'.format(network_name, str(self._server), str(self._user)))
+
         with open(self._cx_network, 'br') as network_out:
             try:
-                if network_id is None:
-                    self._ndex.save_cx_stream_as_new_network(network_out)
-                    action = 'saved'
-                else:
-                    self._ndex.update_cx_network(network_out, network_id)
-                    action = 'updated'
-
+                ret_code = self._ndex.update_cx_network(network_out, network_id)
+                logger.info('network {} updated on server {} for '
+                            'user {}\n'.format(network_name, str(self._server), str(self._user)))
             except Exception as e:
-                logger.error('server returned error: {}\n'.format(e))
-                ret_code = 2
-            else:
-                logger.info('network {} {} on server {} for '
-                            'user {}\n'.format(network_name, action,
-                                               str(self._server),
-                                               str(self._user)))
+                print('{}\n'.format(e))
+                ret_code = ERROR_CODE
+
+        return ret_code
+
+
+    def _load_network_to_server(self, network_name):
+        ret_code = SUCCESS_CODE
+        logger.info('loading network {} to server {} '
+                     'for user {}...'.format(network_name, str(self._server), str(self._user)))
+
+        with open(self._cx_network, 'br') as network_out:
+            try:
+                self._ndex.save_cx_stream_as_new_network(network_out)
+                logger.info('network {} saved on server {} for '
+                            'user {}\n'.format(network_name, str(self._server), str(self._user)))
+            except Exception as e:
+                print('{}\n'.format(e))
+                ret_code = ERROR_CODE
+
         return ret_code
 
     def set_ndex_connection(self, ndex):
@@ -659,12 +757,18 @@ class NDExSTRINGLoader(object):
         return self._ndex
 
 
-    def get_network_uuid(self, network_name):
+    def get_network_summaries_from_NDEx_server(self):
 
         try:
             network_summaries = self._ndex.get_network_summaries_for_user(self._user)
         except Exception as e:
-            return 2
+            print("\n{}: {}".format(type(e).__name__, e))
+            return ERROR_CODE
+
+        return network_summaries
+
+
+    def get_network_uuid(self, network_name, network_summaries):
 
         for summary in network_summaries:
             network_name_1 = summary.get('name')
@@ -675,21 +779,109 @@ class NDExSTRINGLoader(object):
 
         return None
 
-    def load_to_NDEx(self):
 
-        if self.create_ndex_connection() is None:
-            return 2
+    def get_summary_from_summaries(self, summaries, network_UUID):
+        for summary in summaries:
+            if summary['externalId'] == network_UUID:
+                return summary
 
-        network_attributes = self._init_network_attributes()
+        return None
 
+
+    def get_template_from_server(self, summaries):
+        template_summary = self.get_summary_from_summaries(summaries, self._template_UUID)
+
+        if template_summary is None:
+            print('Template network specified with --template {} not found for user {}'.format(self._template_UUID,
+                                                                                               self._user))
+            return ERROR_CODE
+
+        try:
+            self._template = ndex2.create_nice_cx_from_server(self._server, self._user, self._pass, self._template_UUID)
+        except Exception as e:
+            print("\n{}: {}".format(type(e).__name__, e))
+            return ERROR_CODE
+
+        return SUCCESS_CODE
+
+
+    def prepare_CX(self, summaries=None, network_id=None):
+
+        if summaries is None:
+            network_summary = None
+        else:
+            network_summary = self.get_summary_from_summaries(summaries, network_id)
+
+        network_attributes = self._init_network_attributes(network_summary)
         self._generate_CX_file(network_attributes)
 
-        network_name = network_attributes['name']
 
-        network_id = self.get_network_uuid(network_name)
+    def load_to_NDEx(self):
 
-        return self._load_or_update_network_on_server(network_name, network_id)
+        # network is updated when:
+        #  1. update UUID is specified and network with this UUID exists, or
+        #  2. update UUID is not specified, but network with the name already exists
+        #
+        # network is created when:
+        #  1. no update UUID is specified and network doesn't exist on server
+        #
+        # if update UUID is specified but network doesn't exist, quit
 
+        if self.create_ndex_connection() is None:
+            return ERROR_CODE
+
+        network_name = self._get_network_name()
+
+        summaries = self.get_network_summaries_from_NDEx_server()
+
+        if summaries == ERROR_CODE:
+            print('Unable to get network summaries for user {}'.format(self._user))
+            return ERROR_CODE
+
+        if self._template_UUID:
+            # load template from server
+            if self.get_template_from_server(summaries) == ERROR_CODE:
+                return  ERROR_CODE
+        else:
+            # load template from style file
+            self._load_style_template()
+
+        if self._update_UUID:
+            network_summary = self.get_summary_from_summaries(summaries, self._update_UUID)
+
+            if network_summary is None:
+                # warning that not found and ask if to create the network
+                answer = None
+                while answer not in ("y", "n"):
+                    answer = input("Network with UUID {} not found on server; create a new one? Enter y or n: ".format(self._update_UUID))
+                    if answer == "y":
+                        self.prepare_CX()
+                        return self._load_network_to_server(network_name)
+
+                    elif answer == "n":
+                        print('Bye')
+                        return SUCCESS_CODE
+
+            else:
+                network_id = self.get_network_uuid(network_name, summaries)
+                if network_id == ERROR_CODE:
+                    return ERROR_CODE
+
+                self.prepare_CX(summaries, network_id)
+                return self._update_network_on_server(network_name, self._update_UUID)
+
+        else:
+            # update UUID not specified
+            network_id = self.get_network_uuid(network_name, summaries)
+            if network_id == ERROR_CODE:
+                return ERROR_CODE
+
+            if network_id is None:
+                self.prepare_CX()
+                return self._load_network_to_server(network_name)
+            else:
+                self.prepare_CX(summaries, network_id)
+                return self._update_network_on_server(network_name, network_id)
 
 
 def main(args):
@@ -728,14 +920,13 @@ def main(args):
     try:
         _setup_logging(theargs)
         loader = NDExSTRINGLoader(theargs)
-        loader.run()
-        loader.load_to_NDEx()
-        return 0
+        status_code = loader.run()
+        if (status_code != SUCCESS_CODE):
+            return ERROR_CODE
+        return loader.load_to_NDEx()
     except Exception as e:
-        #sys.tracebacklimit = 1
         print("\n{}: {}".format(type(e).__name__, e))
-        logger.exception(e)
-        return 2
+        return ERROR_CODE
     finally:
         logging.shutdown()
 

@@ -29,8 +29,16 @@ This tool downloads and unpacks the `STRING <https://string-db.org/>`_ files bel
 
     `human.uniprot_2_string.2018.tsv.gz <https://string-db.org/mapping_files/uniprot/human.uniprot_2_string.2018.tsv.gz>`_
 
-generates a new tsv file, transforms it to CX, and uploads it to NDEx server.
-
+generates a new tsv file, transforms it to CX, and uploads it to NDEx server. Duplicate edges
+(edges that have the same Source and Target nodes and the same value of :code:`combined_score`)
+are included to the generated tsv and CX files only once. Name of the newly generated network includes
+the value of :code:`cutoffscore` argument, for example,
+:code:`STRING - Human Protein Links - High Confidence (Score >= 0.7)`. In case user didn't specify :code:`--update UUID`
+argument, then the network with this name gets over-written in case if already exists on NDEx server;
+otherwise, a new network is created.
+Specifying :code:`--update UUID` command line argument will over-write network with this UUID if it is found.
+If not, then user is asked if (s)he wants to create a new network. When network is updated, only edges and nodes are
+changed; network attributes are not modified.
 
 
 **1\)** Below is an example of a record
@@ -43,7 +51,7 @@ from `9606.protein.links.full.v11.0.txt.gz <https://stringdb-static.org/download
 
 To generate a STRING network, the loader reads rows from that file one by one and compares the value of the last
 column :code:`combined_score` with the value :code:`cutoffscore` argument.  The row is not added to the network generated in case
-:code:`combined_score` is less than :code:`cutoffscore`.
+:code:`combined_score` is less than the commad-line argument :code:`cutoffscore`.
 
 
 **2\)** If :code:`combined_score` is no than less :code:`cutoffscore`, the loader process two first columns
@@ -68,13 +76,13 @@ to create list of aliases for the current protein.  Thus, list of aliases for :c
 
 **3\)** The second column :code:`protein2` is processed the same way as :code:`column 1`.
 
-**4\)**  In the generated tsv file, :code:`protein1` and :code:`protein2` values from the original file are replaced with
+**4\)**  In the generated tsv file :code:`9606.protein.links.tsv`, :code:`protein1` and :code:`protein2` values from the original file are replaced with
 
 .. code-block::
 
    protein_display_name_1 represents_1 alias_1 protein_display_name_2 represents_2 alias_2
 
-So, the original 
+So, the original
 
 .. code-block::
 
@@ -85,6 +93,18 @@ becomes
 .. code-block::
 
    ANAPC5 uniprot:Q9UJX4 ncbigene:51433|ensembl:ENSP00000261819 CDC16 uniprot:Q13042  ncbigene:8881|ensembl:ENSP00000353549 0 0 0 0 0 102 90 987 260 900 0 754 622 999
+
+
+**5\)**  The generated tsv file :code:`9606.protein.links.tsv` is then transformed to CX :code:`9606.protein.links.cx`.
+The default style defined in :code:`style.cx` distributed with this loader is applied to the
+generated network in case neither :code:`--style` nor :code:`--template` is specified.
+User can specify style template file with either :code:`--style` argument or
+style template network UUID :code:`--template UUID_of_style_template_network`.
+Specifying both :code:`--template` and :code:`--style` is not allowed.
+
+**6\)**  :code:`9606.protein.links.cx` is then uploaded to NDEx server either replacing
+an existing network (in case :code:`--update UUID` is specified or network with this name already exists),
+or creating a new network.
 
 
 Dependencies
@@ -109,7 +129,7 @@ Installation
    pip install dist/ndexloadstring*whl
 
 
-Run **make** command with no arguments to see other build/deploy options including creation of Docker image 
+Run **make** command with no arguments to see other build/deploy options including creation of Docker image
 
 .. code-block::
 
@@ -151,8 +171,8 @@ Networks listed in **[network_ids]** section need to be visible to the **user**
 .. code-block::
 
     [ndexstringloader]
-    user = joe123 
-    password = somepassword123 
+    user = joe123
+    password = somepassword123
     server = dev.ndexbio.org
 
 
