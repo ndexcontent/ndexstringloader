@@ -18,7 +18,10 @@ with open('README.rst') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-requirements = ['ndex2', 'ndexutil']
+requirements = ['ndex2',
+                'ndexutil',
+                'networkx',
+                'scipy']
 
 setup_requirements = [ ]
 
@@ -48,7 +51,7 @@ setup(
     package_dir={'ndexstringloader': 'ndexstringloader'},
     package_data={'ndexstringloader': ['string_plan.json',
                                        'style.cx']},
-    scripts=[ 'ndexstringloader/ndexloadstring.py'],
+    scripts=['ndexstringloader/ndexloadstring.py'],
     setup_requires=setup_requirements,
     test_suite='tests',
     tests_require=test_requirements,

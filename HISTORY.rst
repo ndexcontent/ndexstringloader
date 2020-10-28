@@ -2,6 +2,14 @@
 History
 =======
 
+0.3.0 (10-28-2020)
+------------------
+
+* Added ``--skipupload`` that lets caller skip upload of network to NDEx
+
+* Spring layout applied by default for all networks that have less then 2,000,000
+  edges. This can be overridden with new flag ``--layoutedgecutoff``
+
 0.2.4 (2019-12-01)
 ------------------
 * Fixed defect UD-462 Verify new network attributes are correctly set in ndexstringloader (https://ndexbio.atlassian.net/browse/UD-462).

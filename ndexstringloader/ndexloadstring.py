@@ -4,14 +4,15 @@ import argparse
 import sys
 import logging
 from logging import config
-from ndexutil.config import NDExUtilConfig
-import ndexstringloader
 import csv
 import pandas as pd
-from datetime import datetime
 import gzip
 import shutil
 import os
+import json
+import networkx as nx
+from ndexutil.config import NDExUtilConfig
+import ndexstringloader
 from ndexutil.tsv.streamtsvloader import StreamTSVLoader
 import requests
 import ndex2
@@ -34,12 +35,19 @@ LOG_FORMAT = "%(asctime)-15s %(levelname)s %(relativeCreated)dms " \
 STRING_LOAD_PLAN = 'string_plan.json'
 DEFAULT_ICONURL = 'https://home.ndexbio.org/img/STRING-logo.png'
 
+
+class Formatter(argparse.ArgumentDefaultsHelpFormatter,
+                argparse.RawDescriptionHelpFormatter):
+    pass
+
+
 def get_package_dir():
     """
     Gets directory where package is installed
     :return:
     """
     return os.path.dirname(ndexstringloader.__file__)
+
 
 def get_load_plan():
     """
@@ -48,6 +56,7 @@ def get_load_plan():
     :rtype: string
     """
     return os.path.join(get_package_dir(), STRING_LOAD_PLAN)
+
 
 def get_style():
     """
@@ -58,6 +67,7 @@ def get_style():
     """
     return os.path.join(get_package_dir(), STYLE)
 
+
 def _parse_arguments(desc, args):
     """
     Parses command line arguments
@@ -65,9 +75,8 @@ def _parse_arguments(desc, args):
     :param args:
     :return:
     """
-    help_fm = argparse.RawDescriptionHelpFormatter
     parser = argparse.ArgumentParser(description=desc,
-                                     formatter_class=help_fm)
+                                     formatter_class=Formatter)
 
     network_group = parser.add_mutually_exclusive_group()
 
@@ -92,12 +101,23 @@ def _parse_arguments(desc, args):
     parser.add_argument('--conf', help='Configuration file to load '
                                        '(default ~/' +
                                        NDExUtilConfig.CONFIG_FILE)
-    parser.add_argument('--loadplan', help='Load plan json file', default=get_load_plan())
-    network_group.add_argument('--style', help='Path to NDEx CX file to use for styling networks', default=get_style())
+    parser.add_argument('--loadplan', help='Load plan json file',
+                        default=get_load_plan())
+    network_group.add_argument('--style',
+                               help='Path to NDEx CX file to use for styling '
+                                    'networks. If set, --template cannot be '
+                                    'used',
+                               default=get_style())
+    network_group.add_argument('--template',
+                               help='UUID of network to use for styling '
+                                    'networks. If set, --style cannot be '
+                                    'used')
     parser.add_argument('--iconurl', help='URL for __iconurl parameter '
                                           '(default ' + DEFAULT_ICONURL + ')',
                         default=DEFAULT_ICONURL)
-    parser.add_argument('--cutoffscore', help='Sets cutoff score (default 0.7)',
+    parser.add_argument('--cutoffscore',
+                        help='Sets cutoff score for edges. If set to 0, then'
+                             'all edges are included',
                         type=float, default=0.7)
     parser.add_argument('--verbose', '-v', action='count', default=0,
                         help='Increases verbosity of logger to standard '
@@ -111,14 +131,16 @@ def _parse_arguments(desc, args):
                         help='If set, skips download of data from string'
                              'and assumes data already resides in <datadir>'
                              'directory')
-
-    network_group.add_argument('--template',  help='UUID of network to use for styling networks')
-
+    parser.add_argument('--skipupload', action='store_true',
+                        help='If set, skips upload of network to NDEx')
+    parser.add_argument('--layoutedgecutoff', type=int, default=2000000,
+                        help='Skip generating layout via spring if '
+                             'number of edges in network exceeds '
+                             'this value')
     parser.add_argument('--update', help='UUID of network to update')
 
     parser.add_argument('--version', action='version',
                         version=('%(prog)s ' + ndexstringloader.__version__))
-
     parser.add_argument('--stringversion', help='Version of STRING DB (default 11.0)',
                         default='11.0')
 
@@ -217,7 +239,6 @@ class NDExSTRINGLoader(object):
         self.duplicate_display_names = {}
         self.duplicate_uniprot_ids = {}
 
-
     def _parse_config(self):
         """
         Parses config
@@ -228,7 +249,6 @@ class NDExSTRINGLoader(object):
         self._user = con.get(self._profile, NDExUtilConfig.USER)
         self._pass = con.get(self._profile, NDExUtilConfig.PASSWORD)
         self._server = con.get(self._profile, NDExUtilConfig.SERVER)
-
 
     def _load_style_template(self):
         """
@@ -333,7 +353,6 @@ class NDExSTRINGLoader(object):
 
         return ret_str
 
-
     def check_if_edge_is_duplicate(self, edge_key_1, edge_key_2, edges, combined_score):
         is_duplicate = True
 
@@ -351,13 +370,11 @@ class NDExSTRINGLoader(object):
 
         return is_duplicate
 
-
     def create_output_tsv_file(self):
 
         # generate output tsv file
         output_file = self._output_tsv_file_name
         logger.debug('Creating target {} file...'.format(output_file))
-
 
         with open(output_file, 'w') as o_f:
 
@@ -401,7 +418,6 @@ class NDExSTRINGLoader(object):
         logger.debug('Created {} ({:,} lines) \n'.format(output_file, row_count))
         logger.debug('{:,} duplicate rows detected \n'.format(dup_count))
 
-
     def _check_if_data_dir_exists(self):
         data_dir_existed = True
 
@@ -411,7 +427,6 @@ class NDExSTRINGLoader(object):
 
         return data_dir_existed
 
-
     def _get_headers_headers_of_links_file(self):
         headers = None
 
@@ -420,7 +435,6 @@ class NDExSTRINGLoader(object):
             headers = ((d_reader.fieldnames)[0]).split()
 
         return headers
-
 
     def _init_ensembl_ids(self):
 
@@ -440,8 +454,6 @@ class NDExSTRINGLoader(object):
                 self.ensembl_ids[row[headers[i]]]['represents'] = None
 
         logger.info('Found {:,} unique Ensembl Ids in {}\n'.format(len(self.ensembl_ids), self._full_file_name))
-
-
 
     def _populate_display_names(self):
         logger.debug('Populating display names from {}...'.format(self._names_file))
@@ -472,7 +484,6 @@ class NDExSTRINGLoader(object):
                 row_count = row_count + 1;
 
         logger.debug('Populated {:,} display names from {}\n'.format(row_count, self._names_file))
-
 
     def _populate_aliases(self):
         logger.debug('Populating aliases from {}...'.format(self._entrez_file))
@@ -512,7 +523,6 @@ class NDExSTRINGLoader(object):
         logger.debug('Populated {:,} aliases from {}\n'.format(row_count,
                                                                self._entrez_file))
 
-
     def _populate_represents(self):
         logger.debug('Populating represents from {}...'.format(self._uniprot_file))
         row_count = 0
@@ -542,19 +552,22 @@ class NDExSTRINGLoader(object):
 
         logger.debug('Populated {:,} represents from {}\n'.format(row_count, self._uniprot_file))
 
+    def _is_valid_update_uuid(self):
+        """
+        Checks if self._update_UUID is valid by passing
+        it to UUID constructor and comparing it with
+        str version of self.
 
-    def _is_valid_update_UUID(self):
-        is_valid = True
-
-        if self._update_UUID is not None:
-            try:
-                uuid_obj = UUID(self._update_UUID)
-                is_valid = str(uuid_obj) == self._update_UUID
-            except ValueError:
-                is_valid = False
-
-        return is_valid
-
+        :return: True if self._update_UUID is None or if it is a value UUID
+        :rtype: bool
+        """
+        if self._update_UUID is None:
+            return True
+        try:
+            uuid_obj = UUID(self._update_UUID)
+            return str(uuid_obj) == self._update_UUID
+        except ValueError:
+            return False
 
     def run(self):
         """
@@ -564,9 +577,10 @@ class NDExSTRINGLoader(object):
         """
         self._parse_config()
 
-        if not self._is_valid_update_UUID():
-           print('Invalid UUID value for {}: {}'.format('--update', self._update_UUID))
-           return ERROR_CODE
+        if not self._is_valid_update_uuid():
+            print('Invalid UUID value for {}: {}'.format('--update',
+                                                         self._update_UUID))
+            return ERROR_CODE
 
         data_dir_existed = self._check_if_data_dir_exists()
 
@@ -581,7 +595,7 @@ class NDExSTRINGLoader(object):
 
         self._init_ensembl_ids()
 
-        #populate name - 4.display name -> becomes name
+        # populate name - 4.display name -> becomes name
         self._populate_display_names()
 
         # populate alias - 3. node string id -> becomes alias, for example
@@ -594,7 +608,6 @@ class NDExSTRINGLoader(object):
 
         return SUCCESS_CODE
 
-
     def _get_network_name(self):
 
         if self._cutoffscore == 0:
@@ -604,7 +617,6 @@ class NDExSTRINGLoader(object):
                 'STRING - Human Protein Links - High Confidence (Score >= ' + str(self._cutoffscore) + ')'
 
         return network_name
-
 
     def _get_property_from_summary(self, property, summary, default_value):
         if summary is None:
@@ -620,10 +632,6 @@ class NDExSTRINGLoader(object):
                     return prop['value']
 
         return default_value
-
-
-
-
 
     def _init_network_attributes(self, summary=None):
         net_attributes = {}
@@ -657,7 +665,7 @@ class NDExSTRINGLoader(object):
                     + 'DOI:10.1093/nar/gkw937</a></p>'
         net_attributes['reference'] = self._get_property_from_summary('reference', summary, reference)
 
-        wasDerivedFrom = 'https://stringdb-static.org/download/protein.links.full.v11.0/9606.protein.links.full.v11.0.txt.gz'
+        wasDerivedFrom = self._protein_links_url
         net_attributes['prov:wasDerivedFrom'] = self._get_property_from_summary('prov:wasDerivedFrom', summary, wasDerivedFrom)
 
         wasGeneratedBy = '<a href="https://github.com/ndexcontent/ndexstringloader" target="_blank">ndexstringloader ' \
@@ -672,12 +680,12 @@ class NDExSTRINGLoader(object):
     def _generate_CX_file(self, network_attributes):
 
         logger.debug('generating CX file for network {}...'.format(network_attributes['name']))
-
+        edge_count = 0
+        node_count = 0
         with open(self._output_tsv_file_name, 'r') as tsvfile:
 
             with open(self._cx_network, "w") as out:
                 loader = StreamTSVLoader(self._load_plan, self._template)
-
                 loader.write_cx_network(tsvfile, out,
                     [
                         {'n': 'name', 'v': network_attributes['name']},
@@ -692,42 +700,83 @@ class NDExSTRINGLoader(object):
                         {'n': 'prov:wasGeneratedBy', 'v': network_attributes['prov:wasGeneratedBy']},
                         {'n': '__iconurl', 'v': network_attributes['__iconurl']}
                     ])
-
-        logger.debug('CX file for network {} generated\n'.format(network_attributes['name']))
-
+                edge_count = loader.edgeCounter
+                node_count = loader.nodeCounter
+        logger.debug('CX file for network ' +
+                     network_attributes['name'] +
+                     ' with ' + str(node_count) +
+                     ' nodes and ' + str(edge_count) +
+                     ' edges generated')
+        return node_count, edge_count
 
     def _update_network_on_server(self, network_name, network_id=None):
-        ret_code = SUCCESS_CODE
+        """
+        Updates network with NDEx UUID `network_id` on NDEx unless
+        --skipupload flag was passed as a parameter to constructor
+        in which case no upload is performed and 0 is returned
+
+        :param network_name: Name of network
+        :type network_name: str
+        :param network_id: NDEx UUID of network
+        :type network_id: str
+        :return: 0 upon success otherwise error
+        """
+        if self._args.skipupload is True:
+            logger.info('--skipupload set. Skipping upload of network ' +
+                        str(network_name))
+            return SUCCESS_CODE
+
         logger.info('updating network {} on server {} '
-                     'for user {}...'.format(network_name, str(self._server), str(self._user)))
+                    'for user {}...'.format(network_name,
+                                            str(self._server),
+                                            str(self._user)))
 
         with open(self._cx_network, 'br') as network_out:
             try:
-                ret_code = self._ndex.update_cx_network(network_out, network_id)
+                ret_code = self._ndex.update_cx_network(network_out,
+                                                        network_id)
                 logger.info('network {} updated on server {} for '
-                            'user {}\n'.format(network_name, str(self._server), str(self._user)))
+                            'user {}\n'.format(network_name,
+                                               str(self._server),
+                                               str(self._user)))
+                return ret_code
             except Exception as e:
-                print('{}\n'.format(e))
-                ret_code = ERROR_CODE
-
-        return ret_code
-
+                logger.exception('Caught exception attempting to '
+                                 'update network: ' + str(e))
+                return ERROR_CODE
 
     def _load_network_to_server(self, network_name):
-        ret_code = SUCCESS_CODE
+        """
+        Uploads new network to NDEx unless
+        --skipupload flag was passed as a parameter to constructor
+        in which case no upload is performed and 0 is returned
+
+        :param network_name: Name of network
+        :type network_name: str
+        :return: 0 upon success otherwise error
+        """
+        if self._args.skipupload is True:
+            logger.info('--skipupload set. Skipping upload of network ' +
+                        str(network_name))
+            return SUCCESS_CODE
+
         logger.info('loading network {} to server {} '
-                     'for user {}...'.format(network_name, str(self._server), str(self._user)))
+                    'for user {}...'.format(network_name,
+                                            str(self._server),
+                                            str(self._user)))
 
         with open(self._cx_network, 'br') as network_out:
             try:
                 self._ndex.save_cx_stream_as_new_network(network_out)
                 logger.info('network {} saved on server {} for '
-                            'user {}\n'.format(network_name, str(self._server), str(self._user)))
+                            'user {}\n'.format(network_name,
+                                               str(self._server),
+                                               str(self._user)))
+                return SUCCESS_CODE
             except Exception as e:
-                print('{}\n'.format(e))
-                ret_code = ERROR_CODE
-
-        return ret_code
+                logger.exception('Caught exception attempting to '
+                                 'upload network: ' + str(e))
+                return ERROR_CODE
 
     def set_ndex_connection(self, ndex):
         """
@@ -748,14 +797,15 @@ class NDExSTRINGLoader(object):
         """
         if self._ndex is None:
             try:
-                self._ndex = ndex2.client.Ndex2(host=self._server, username=self._user, password=self._pass)
+                self._ndex = ndex2.client.Ndex2(host=self._server,
+                                                username=self._user,
+                                                password=self._pass)
 
             except Exception as e:
                 logger.exception('Caught exception: {}'.format(e))
                 return None
 
         return self._ndex
-
 
     def get_network_summaries_from_NDEx_server(self):
 
@@ -766,7 +816,6 @@ class NDExSTRINGLoader(object):
             return ERROR_CODE
 
         return network_summaries
-
 
     def get_network_uuid(self, network_name, network_summaries):
 
@@ -779,14 +828,12 @@ class NDExSTRINGLoader(object):
 
         return None
 
-
     def get_summary_from_summaries(self, summaries, network_UUID):
         for summary in summaries:
             if summary['externalId'] == network_UUID:
                 return summary
 
         return None
-
 
     def get_template_from_server(self, summaries):
         template_summary = self.get_summary_from_summaries(summaries, self._template_UUID)
@@ -804,7 +851,6 @@ class NDExSTRINGLoader(object):
 
         return SUCCESS_CODE
 
-
     def prepare_CX(self, summaries=None, network_id=None):
 
         if summaries is None:
@@ -813,8 +859,8 @@ class NDExSTRINGLoader(object):
             network_summary = self.get_summary_from_summaries(summaries, network_id)
 
         network_attributes = self._init_network_attributes(network_summary)
-        self._generate_CX_file(network_attributes)
-
+        node_count, edge_count = self._generate_CX_file(network_attributes)
+        self._apply_simple_spring_layout(edge_count=edge_count)
 
     def load_to_NDEx(self):
 
@@ -883,6 +929,72 @@ class NDExSTRINGLoader(object):
                 self.prepare_CX(summaries, network_id)
                 return self._update_network_on_server(network_name, network_id)
 
+    def _apply_simple_spring_layout(self, edge_count=None,
+                                    iterations=5):
+        """
+        Applies simple spring network by using
+        :py:func:`networkx.drawing.spring_layout` and putting the
+        coordinates into 'cartesianLayout' aspect on the 'network' passed
+        in
+
+        :param network: Network to update
+        :type network: :py:class:`~ndex2.nice_cx_network.NiceCXNetwork`
+        :param iterations: Number of iterations to use for networkx spring
+                           layout call
+        :type iterations: int
+        :return: None
+        """
+        if edge_count > self._args.layoutedgecutoff:
+            logger.info('Skipping layout generation '
+                        'since layout has ' + str(edge_count) +
+                        ' edges which exceeds --layoutedgecutoff '
+                        'value of ' + str(self._args.layoutedgecutoff) +
+                        ' edges')
+            return
+
+        network = ndex2.create_nice_cx_from_file(self._cx_network)
+        num_nodes = len(network.get_nodes())
+
+        logger.debug('Converting network to networkx')
+        my_networkx = network.to_networkx(mode='default')
+        if num_nodes < 10:
+            nodescale = num_nodes*20
+        elif num_nodes < 20:
+            nodescale = num_nodes*15
+        elif num_nodes < 100:
+            nodescale = num_nodes*10
+        else:
+            nodescale = num_nodes*5
+        logger.debug('Applying spring layout')
+        my_networkx.pos = nx.drawing.spring_layout(my_networkx,
+                                                   scale=nodescale,
+                                                   k=1.8,
+                                                   iterations=iterations)
+        cartesian_aspect = self._cartesian(my_networkx)
+        network.set_opaque_aspect("cartesianLayout", cartesian_aspect)
+        del my_networkx
+        # write out network with layout
+        with open(self._cx_network, 'w') as f:
+            json.dump(network.to_cx(), f)
+        del network
+
+    def _cartesian(self, g):
+        """
+        Converts node coordinates from a :py:class:`networkx.Graph` object
+        to a list of dicts with following format:
+
+        [{'node': <node id>,
+          'x': <x position>,
+          'y': <y position>}]
+
+        :param g:
+        :return: coordinates
+        :rtype: list
+        """
+        return [{'node': n,
+                 'x': float(g.pos[n][0]),
+                 'y': float(g.pos[n][1])} for n in g.pos]
+
 
 def main(args):
     """
@@ -907,6 +1019,12 @@ def main(args):
     {password} = <NDEx password>
     {server} = <NDEx server(omit http) ie public.ndexbio.org>
 
+
+    This tool needs to be run twice to update networks on 
+    NDEx. Once with --cutoffscore omitted to create a STRING
+    network with 0.7 as the cutoff (default value) and once
+    with --cutoffscore 0 to upload the full STRING network.
+    
 
     """.format(confname=NDExUtilConfig.CONFIG_FILE,
                user=NDExUtilConfig.USER,
