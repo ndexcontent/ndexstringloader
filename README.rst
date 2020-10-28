@@ -112,6 +112,9 @@ Dependencies
 
 * ndex2
 * ndexutil
+* networkx
+* scipy
+
 
 Compatibility
 -------------
@@ -208,7 +211,7 @@ Via Docker
 
 .. code-block::
 
-   docker run -v `pwd`:`pwd` -w `pwd` vrynkov/ndexstringloader:0.1.0 ndexloadstring.py --conf conf # TODO Add other needed arguments here
+   docker run -v `pwd`:`pwd` -w `pwd` <IMAGE NAME> ndexloadstring.py --conf conf # TODO Add other needed arguments here
 
 
 Credits
