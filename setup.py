@@ -21,7 +21,10 @@ with open('HISTORY.rst') as history_file:
 requirements = ['ndex2',
                 'ndexutil',
                 'networkx',
-                'scipy']
+                'scipy',
+                'py4cytoscape',
+                'requests',
+                'pandas']
 
 setup_requirements = [ ]
 
