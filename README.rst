@@ -114,12 +114,15 @@ Dependencies
 * ndexutil
 * networkx
 * scipy
+* requests
+* py4cytoscape
+* pandas
 
 
 Compatibility
 -------------
 
-* Python 3.3+
+* Python 3.6+
 
 Installation
 ------------
@@ -199,19 +202,6 @@ Here is how this command can be run for **dev** and **prod** targets:
    ndexloadstring.py --profile dev tmpdir/
 
    ndexloadstring.py --profile prod tmpdir/
-
-
-Via Docker
-~~~~~~~~~~~~~~~~~~~~~~
-
-**Example usage**
-
-**TODO:** Add information about example usage
-
-
-.. code-block::
-
-   docker run -v `pwd`:`pwd` -w `pwd` <IMAGE NAME> ndexloadstring.py --conf conf # TODO Add other needed arguments here
 
 
 Credits
