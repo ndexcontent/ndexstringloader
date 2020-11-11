@@ -2,6 +2,14 @@
 History
 =======
 
+1.0.0 (11-11-2020)
+------------------
+
+* New default behavior: **force-directed-cl** layout is now applied on
+  networks via py4cytoscape library and a running instance of Cytoscape.
+  Alternate Cytoscape layouts and the networkx "spring" layout can be
+  run by setting appropriate value via the new **--layout** flag
+
 0.3.0 (10-28-2020)
 ------------------
 
