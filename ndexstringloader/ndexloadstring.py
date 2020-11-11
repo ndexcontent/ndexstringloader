@@ -5,17 +5,24 @@ import sys
 import logging
 from logging import config
 import csv
-import pandas as pd
 import gzip
 import shutil
 import os
 import json
+import tempfile
+import pandas as pd
 import networkx as nx
-from ndexutil.config import NDExUtilConfig
-import ndexstringloader
-from ndexutil.tsv.streamtsvloader import StreamTSVLoader
 import requests
+
+from ndexutil.config import NDExUtilConfig
+from ndexutil.tsv.streamtsvloader import StreamTSVLoader
+from ndexutil.ndex import NDExExtraUtils
+from ndexutil.cytoscape import Py4CytoscapeWrapper
+from ndexutil.cytoscape import DEFAULT_CYREST_API
 import ndex2
+import ndexstringloader
+from ndexstringloader.exceptions import NDExSTRINGLoaderError
+
 
 from uuid import UUID
 
@@ -85,22 +92,19 @@ def _parse_arguments(desc, args):
                                         'and processed from')
     parser.add_argument('--profile', help='Profile in configuration '
                                           'file to load '
-                                          'NDEx credentials which means'
-                                          'configuration under [XXX] will be'
-                                          'used '
-                                          '(default '
-                                          'ndexstringloader)',
+                                          'NDEx credentials which means '
+                                          'configuration under [XXX] will be '
+                                          'used',
                         default='ndexstringloader')
     parser.add_argument('--logconf', default=None,
                         help='Path to python logging configuration file in '
                              'this format: https://docs.python.org/3/library/'
                              'logging.config.html#logging-config-fileformat'
                              'Setting this overrides -v parameter which uses '
-                             ' default logger. (default None)')
-
+                             ' default logger')
     parser.add_argument('--conf', help='Configuration file to load '
                                        '(default ~/' +
-                                       NDExUtilConfig.CONFIG_FILE)
+                                       NDExUtilConfig.CONFIG_FILE + ')')
     parser.add_argument('--loadplan', help='Load plan json file',
                         default=get_load_plan())
     network_group.add_argument('--style',
@@ -112,36 +116,46 @@ def _parse_arguments(desc, args):
                                help='UUID of network to use for styling '
                                     'networks. If set, --style cannot be '
                                     'used')
-    parser.add_argument('--iconurl', help='URL for __iconurl parameter '
-                                          '(default ' + DEFAULT_ICONURL + ')',
+    parser.add_argument('--iconurl', help='URL for __iconurl parameter ',
                         default=DEFAULT_ICONURL)
     parser.add_argument('--cutoffscore',
-                        help='Sets cutoff score for edges. If set to 0, then'
+                        help='Sets cutoff score for edges. If set to 0, then '
                              'all edges are included',
                         type=float, default=0.7)
     parser.add_argument('--verbose', '-v', action='count', default=0,
                         help='Increases verbosity of logger to standard '
-                             'error for log messages in this module and'
+                             'error for log messages in this module and '
                              'in ' + TSV2NICECXMODULE + '. Messages are '
                              'output at these python logging levels '
                              '-v = ERROR, -vv = WARNING, -vvv = INFO, '
-                             '-vvvv = DEBUG, -vvvvv = NOTSET (default no '
-                             'logging)')
+                             '-vvvv = DEBUG, -vvvvv = NOTSET')
     parser.add_argument('--skipdownload', action='store_true',
-                        help='If set, skips download of data from string'
+                        help='If set, skips download of data from string '
                              'and assumes data already resides in <datadir>'
                              'directory')
     parser.add_argument('--skipupload', action='store_true',
                         help='If set, skips upload of network to NDEx')
     parser.add_argument('--layoutedgecutoff', type=int, default=2000000,
-                        help='Skip generating layout via spring if '
+                        help='Skip generating layout if '
                              'number of edges in network exceeds '
                              'this value')
+    parser.add_argument('--layout', default='-',
+                        help='Specifies layout '
+                             'algorithm to run. If Cytoscape is running '
+                             'any layout from Cytoscape can be used. If '
+                             'this flag is omitted or "-" is passed in '
+                             'force-directed-cl from Cytoscape will '
+                             'be used. If no Cytoscape is available, '
+                             '"spring" from networkx is supported')
+    parser.add_argument('--cyresturl',
+                        default=DEFAULT_CYREST_API,
+                        help='URL of CyREST API. Default value '
+                             'is default for locally running Cytoscape')
     parser.add_argument('--update', help='UUID of network to update')
 
     parser.add_argument('--version', action='version',
                         version=('%(prog)s ' + ndexstringloader.__version__))
-    parser.add_argument('--stringversion', help='Version of STRING DB (default 11.0)',
+    parser.add_argument('--stringversion', help='Version of STRING DB',
                         default='11.0')
 
     return parser.parse_args(args)
@@ -175,7 +189,9 @@ class NDExSTRINGLoader(object):
     """
     Class to load content
     """
-    def __init__(self, args):
+    def __init__(self, args,
+                 py4cyto=Py4CytoscapeWrapper(),
+                 ndexextra=NDExExtraUtils()):
         """
         :param args:
         """
@@ -189,6 +205,8 @@ class NDExSTRINGLoader(object):
         self._iconurl = args.iconurl
         self._template = None
         self._ndex = None
+        self._py4 = py4cyto
+        self._ndexextra = ndexextra
 
         self._template_UUID = args.template
         self._update_UUID = args.update
@@ -255,7 +273,8 @@ class NDExSTRINGLoader(object):
         Loads the CX network specified by self._args.style into self._template
         :return:
         """
-        self._template = ndex2.create_nice_cx_from_file(os.path.abspath(self._args.style))
+        self._template = ndex2.\
+            create_nice_cx_from_file(os.path.abspath(self._args.style))
 
     def _download(self, url, local_file_name):
 
@@ -284,24 +303,28 @@ class NDExSTRINGLoader(object):
         logger.debug('{} unzipped and removed\n'.format(zip_file))
         return SUCCESS_CODE
 
-    def _download_STRING_files(self):
+    def _download_string_files(self):
         """
         Parses config
         :return:
         """
-        ret_code = self._download(self._protein_links_url, self._full_file_name + '.gz')
-        if (ret_code != SUCCESS_CODE):
+        ret_code = self._download(self._protein_links_url,
+                                  self._full_file_name + '.gz')
+        if ret_code != SUCCESS_CODE:
             return ret_code
 
-        ret_code = self._download(self._names_file_url, self._names_file + '.gz')
-        if (ret_code != SUCCESS_CODE):
+        ret_code = self._download(self._names_file_url,
+                                  self._names_file + '.gz')
+        if ret_code != SUCCESS_CODE:
             return ret_code
 
-        ret_code = self._download(self._entrez_ids_file_url, self._entrez_file + '.gz')
-        if (ret_code != SUCCESS_CODE):
+        ret_code = self._download(self._entrez_ids_file_url,
+                                  self._entrez_file + '.gz')
+        if ret_code != SUCCESS_CODE:
             return ret_code
 
-        return self._download(self._uniprot_ids_file_url, self._uniprot_file + '.gz')
+        return self._download(self._uniprot_ids_file_url,
+                              self._uniprot_file + '.gz')
 
     def _unpack_STRING_files(self):
         """
@@ -309,19 +332,19 @@ class NDExSTRINGLoader(object):
         :return:
         """
         ret_code = self._unzip(self._full_file_name + '.gz')
-        if (ret_code != SUCCESS_CODE):
+        if ret_code != SUCCESS_CODE:
             return ERROR_CODE
 
         ret_code = self._unzip(self._entrez_file + '.gz')
-        if (ret_code != SUCCESS_CODE):
+        if ret_code != SUCCESS_CODE:
             return ERROR_CODE
 
         ret_code = self._unzip(self._names_file + '.gz')
-        if (ret_code != SUCCESS_CODE):
+        if ret_code != SUCCESS_CODE:
             return ERROR_CODE
 
         ret_code = self._unzip(self._uniprot_file + '.gz')
-        if (ret_code != SUCCESS_CODE):
+        if ret_code != SUCCESS_CODE:
             return ERROR_CODE
 
         return SUCCESS_CODE
@@ -353,7 +376,9 @@ class NDExSTRINGLoader(object):
 
         return ret_str
 
-    def check_if_edge_is_duplicate(self, edge_key_1, edge_key_2, edges, combined_score):
+    def check_if_edge_is_duplicate(self, edge_key_1,
+                                   edge_key_2, edges,
+                                   combined_score):
         is_duplicate = True
 
         if edge_key_1 in edges:
@@ -469,7 +494,7 @@ class NDExSTRINGLoader(object):
 
                 if ensembl_id in self.ensembl_ids:
 
-                    if (self.ensembl_ids[ensembl_id]['display_name'] is None):
+                    if self.ensembl_ids[ensembl_id]['display_name'] is None:
                         self.ensembl_ids[ensembl_id]['display_name'] = display_name
 
                     elif display_name != self.ensembl_ids[ensembl_id]['display_name']:
@@ -483,7 +508,9 @@ class NDExSTRINGLoader(object):
 
                 row_count = row_count + 1;
 
-        logger.debug('Populated {:,} display names from {}\n'.format(row_count, self._names_file))
+        logger.debug('Populated {:,} '
+                     'display names from {}\n'.format(row_count,
+                                                      self._names_file))
 
     def _populate_aliases(self):
         logger.debug('Populating aliases from {}...'.format(self._entrez_file))
@@ -499,7 +526,7 @@ class NDExSTRINGLoader(object):
 
                 if ensembl_id in self.ensembl_ids:
 
-                    if (self.ensembl_ids[ensembl_id]['alias'] is None):
+                    if self.ensembl_ids[ensembl_id]['alias'] is None:
 
                         ensembl_alias = 'ensembl:' + ensembl_id.split('.')[1]
 
@@ -508,7 +535,7 @@ class NDExSTRINGLoader(object):
 
                         ncbi_gene_id_split = ['ncbigene:' + element + '|' for element in ncbi_gene_id_split]
 
-                        if (len(ncbi_gene_id_split) > 1):
+                        if len(ncbi_gene_id_split) > 1:
                             alias_string = "".join(ncbi_gene_id_split) + ensembl_alias
                         else:
                             alias_string = ncbi_gene_id_split[0] + ensembl_alias
@@ -536,7 +563,7 @@ class NDExSTRINGLoader(object):
 
                 if ensembl_id in self.ensembl_ids:
 
-                    if (self.ensembl_ids[ensembl_id]['represents'] is None):
+                    if self.ensembl_ids[ensembl_id]['represents'] is None:
                         self.ensembl_ids[ensembl_id]['represents'] = 'uniprot:' + uniprot_id
 
                     elif uniprot_id != self.ensembl_ids[ensembl_id]['represents']:
@@ -585,7 +612,7 @@ class NDExSTRINGLoader(object):
         data_dir_existed = self._check_if_data_dir_exists()
 
         if self._args.skipdownload is False or data_dir_existed is False:
-            ret_code = self._download_STRING_files()
+            ret_code = self._download_string_files()
             if ret_code != SUCCESS_CODE:
                 return ERROR_CODE
 
@@ -614,7 +641,8 @@ class NDExSTRINGLoader(object):
             network_name = 'STRING - Human Protein Links'
         else:
             network_name = \
-                'STRING - Human Protein Links - High Confidence (Score >= ' + str(self._cutoffscore) + ')'
+                'STRING - Human Protein Links - High Confidence (Score >= ' +\
+                str(self._cutoffscore) + ')'
 
         return network_name
 
@@ -673,11 +701,12 @@ class NDExSTRINGLoader(object):
         net_attributes['prov:wasGeneratedBy'] = self._get_property_from_summary('prov:wasGeneratedBy', summary, wasGeneratedBy)
 
         net_attributes['__iconurl'] = self._iconurl if self._iconurl \
-            else self._get_property_from_summary('__iconurl', summary, self._iconurl)
+            else self._get_property_from_summary('__iconurl',
+                                                 summary, self._iconurl)
 
         return net_attributes
 
-    def _generate_CX_file(self, network_attributes):
+    def _generate_cx_file(self, network_attributes):
 
         logger.debug('generating CX file for network {}...'.format(network_attributes['name']))
         edge_count = 0
@@ -689,16 +718,24 @@ class NDExSTRINGLoader(object):
                 loader.write_cx_network(tsvfile, out,
                     [
                         {'n': 'name', 'v': network_attributes['name']},
-                        {'n': 'description', 'v': network_attributes['description']},
+                        {'n': 'description',
+                         'v': network_attributes['description']},
                         {'n': 'rights', 'v': network_attributes['rights']},
-                        {'n': 'rightsHolder', 'v': network_attributes['rightsHolder']},
+                        {'n': 'rightsHolder',
+                         'v': network_attributes['rightsHolder']},
                         {'n': 'version', 'v': network_attributes['version']},
                         {'n': 'organism', 'v': network_attributes['organism']},
-                        {'n': 'networkType', 'v': network_attributes['networkType'], 'd': 'list_of_string'},
-                        {'n': 'reference', 'v': network_attributes['reference']},
-                        {'n': 'prov:wasDerivedFrom', 'v': network_attributes['prov:wasDerivedFrom']},
-                        {'n': 'prov:wasGeneratedBy', 'v': network_attributes['prov:wasGeneratedBy']},
-                        {'n': '__iconurl', 'v': network_attributes['__iconurl']}
+                        {'n': 'networkType',
+                         'v': network_attributes['networkType'],
+                         'd': 'list_of_string'},
+                        {'n': 'reference',
+                         'v': network_attributes['reference']},
+                        {'n': 'prov:wasDerivedFrom',
+                         'v': network_attributes['prov:wasDerivedFrom']},
+                        {'n': 'prov:wasGeneratedBy',
+                         'v': network_attributes['prov:wasGeneratedBy']},
+                        {'n': '__iconurl',
+                         'v': network_attributes['__iconurl']}
                     ])
                 edge_count = loader.edgeCounter
                 node_count = loader.nodeCounter
@@ -807,10 +844,11 @@ class NDExSTRINGLoader(object):
 
         return self._ndex
 
-    def get_network_summaries_from_NDEx_server(self):
+    def get_network_summaries_from_ndex_server(self):
 
         try:
-            network_summaries = self._ndex.get_network_summaries_for_user(self._user)
+            network_summaries = self._ndex.\
+                get_network_summaries_for_user(self._user)
         except Exception as e:
             print("\n{}: {}".format(type(e).__name__, e))
             return ERROR_CODE
@@ -828,45 +866,68 @@ class NDExSTRINGLoader(object):
 
         return None
 
-    def get_summary_from_summaries(self, summaries, network_UUID):
+    def get_summary_from_summaries(self, summaries, network_uuid):
         for summary in summaries:
-            if summary['externalId'] == network_UUID:
+            if summary['externalId'] == network_uuid:
                 return summary
 
         return None
 
     def get_template_from_server(self, summaries):
-        template_summary = self.get_summary_from_summaries(summaries, self._template_UUID)
+        template_summary = self.get_summary_from_summaries(summaries,
+                                                           self._template_UUID)
 
         if template_summary is None:
-            print('Template network specified with --template {} not found for user {}'.format(self._template_UUID,
-                                                                                               self._user))
+            print('Template network specified with '
+                  '--template {} not found for '
+                  'user {}'.format(self._template_UUID, self._user))
             return ERROR_CODE
 
         try:
-            self._template = ndex2.create_nice_cx_from_server(self._server, self._user, self._pass, self._template_UUID)
+            self._template = ndex2.\
+                create_nice_cx_from_server(self._server,
+                                           self._user,
+                                           self._pass,
+                                           self._template_UUID)
         except Exception as e:
             print("\n{}: {}".format(type(e).__name__, e))
             return ERROR_CODE
 
         return SUCCESS_CODE
 
-    def prepare_CX(self, summaries=None, network_id=None):
+    def prepare_cx(self, summaries=None, network_id=None):
 
         if summaries is None:
             network_summary = None
         else:
-            network_summary = self.get_summary_from_summaries(summaries, network_id)
+            network_summary = self.get_summary_from_summaries(summaries,
+                                                              network_id)
 
         network_attributes = self._init_network_attributes(network_summary)
-        node_count, edge_count = self._generate_CX_file(network_attributes)
-        self._apply_simple_spring_layout(edge_count=edge_count)
+        node_count, edge_count = self._generate_cx_file(network_attributes)
 
-    def load_to_NDEx(self):
+        if edge_count > self._args.layoutedgecutoff:
+            logger.info('Skipping layout generation '
+                        'since layout has ' + str(edge_count) +
+                        ' edges which exceeds --layoutedgecutoff '
+                        'value of ' + str(self._args.layoutedgecutoff) +
+                        ' edges')
+            return
+        if self._args.layout is not None:
+            if self._args.layout == 'spring':
+                logger.info('Applying spring layout for network')
+                self._apply_simple_spring_layout()
+            else:
+                if self._args.layout == '-':
+                    self._args.layout = 'force-directed-cl'
+                self._apply_cytoscape_layout()
+
+    def load_to_ndex(self):
 
         # network is updated when:
         #  1. update UUID is specified and network with this UUID exists, or
-        #  2. update UUID is not specified, but network with the name already exists
+        #  2. update UUID is not specified, but network with the name
+        #     already exists
         #
         # network is created when:
         #  1. no update UUID is specified and network doesn't exist on server
@@ -878,30 +939,35 @@ class NDExSTRINGLoader(object):
 
         network_name = self._get_network_name()
 
-        summaries = self.get_network_summaries_from_NDEx_server()
+        summaries = self.get_network_summaries_from_ndex_server()
 
         if summaries == ERROR_CODE:
-            print('Unable to get network summaries for user {}'.format(self._user))
+            print('Unable to get network '
+                  'summaries for user {}'.format(self._user))
             return ERROR_CODE
 
         if self._template_UUID:
             # load template from server
             if self.get_template_from_server(summaries) == ERROR_CODE:
-                return  ERROR_CODE
+                return ERROR_CODE
         else:
             # load template from style file
             self._load_style_template()
 
         if self._update_UUID:
-            network_summary = self.get_summary_from_summaries(summaries, self._update_UUID)
+            network_summary = self.\
+                get_summary_from_summaries(summaries,
+                                           self._update_UUID)
 
             if network_summary is None:
                 # warning that not found and ask if to create the network
                 answer = None
                 while answer not in ("y", "n"):
-                    answer = input("Network with UUID {} not found on server; create a new one? Enter y or n: ".format(self._update_UUID))
+                    answer = input("Network with UUID {} not found on server; "
+                                   "create a new one? "
+                                   "Enter y or n: ".format(self._update_UUID))
                     if answer == "y":
-                        self.prepare_CX()
+                        self.prepare_cx()
                         return self._load_network_to_server(network_name)
 
                     elif answer == "n":
@@ -913,8 +979,9 @@ class NDExSTRINGLoader(object):
                 if network_id == ERROR_CODE:
                     return ERROR_CODE
 
-                self.prepare_CX(summaries, network_id)
-                return self._update_network_on_server(network_name, self._update_UUID)
+                self.prepare_cx(summaries, network_id)
+                return self._update_network_on_server(network_name,
+                                                      self._update_UUID)
 
         else:
             # update UUID not specified
@@ -923,14 +990,13 @@ class NDExSTRINGLoader(object):
                 return ERROR_CODE
 
             if network_id is None:
-                self.prepare_CX()
+                self.prepare_cx()
                 return self._load_network_to_server(network_name)
             else:
-                self.prepare_CX(summaries, network_id)
+                self.prepare_cx(summaries, network_id)
                 return self._update_network_on_server(network_name, network_id)
 
-    def _apply_simple_spring_layout(self, edge_count=None,
-                                    iterations=5):
+    def _apply_simple_spring_layout(self, iterations=5):
         """
         Applies simple spring network by using
         :py:func:`networkx.drawing.spring_layout` and putting the
@@ -944,14 +1010,6 @@ class NDExSTRINGLoader(object):
         :type iterations: int
         :return: None
         """
-        if edge_count > self._args.layoutedgecutoff:
-            logger.info('Skipping layout generation '
-                        'since layout has ' + str(edge_count) +
-                        ' edges which exceeds --layoutedgecutoff '
-                        'value of ' + str(self._args.layoutedgecutoff) +
-                        ' edges')
-            return
-
         network = ndex2.create_nice_cx_from_file(self._cx_network)
         num_nodes = len(network.get_nodes())
 
@@ -995,6 +1053,70 @@ class NDExSTRINGLoader(object):
                  'x': float(g.pos[n][0]),
                  'y': float(g.pos[n][1])} for n in g.pos]
 
+    def _apply_cytoscape_layout(self):
+        """
+        Applies Cytoscape layout on network
+        :param network:
+        :return:
+        """
+        try:
+            self._py4.cytoscape_ping()
+        except Exception as e:
+            raise NDExSTRINGLoaderError('Cytoscape needs to be running to run '
+                                        'layout: ' + str(self._args.layout))
+
+        temp_dir = tempfile.mkdtemp(dir=self._datadir)
+        try:
+            annotated_cx_file = os.path.join(temp_dir, 'annotated.tmp.cx')
+
+            self._ndexextra.\
+                add_node_id_as_node_attribute(cxfile=self._cx_network,
+                                              outcxfile=annotated_cx_file)
+            file_size = os.path.getsize(annotated_cx_file)
+
+            logger.info('Importing network from file: ' + annotated_cx_file +
+                        ' (' + str(file_size) + ' bytes) into Cytoscape')
+            net_dict = self._py4.\
+                import_network_from_file(annotated_cx_file,
+                                         base_url=self._args.cyresturl)
+            if 'networks' not in net_dict:
+                raise NDExSTRINGLoaderError('Error network view could not '
+                                            'be created, this could be cause '
+                                            'this network is larger then '
+                                            '100,000 edges. Try increasing '
+                                            'viewThreshold property in '
+                                            'Cytoscape preferences')
+
+            os.unlink(annotated_cx_file)
+            net_suid = net_dict['networks'][0]
+
+            logger.info('Applying layout ' + self._args.layout +
+                        ' on network with suid: ' +
+                        str(net_suid) + ' in Cytoscape')
+            res = self._py4.layout_network(layout_name=self._args.layout,
+                                           network=net_suid,
+                                           base_url=self._args.cyresturl)
+            logger.debug(res)
+
+            tmp_cx_file = os.path.join(temp_dir, 'tmp.cx')
+
+            logger.info('Writing cx to: ' + tmp_cx_file)
+            res = self._py4.export_network(filename=tmp_cx_file, type='CX',
+                                           network=net_suid,
+                                           base_url=self._args.cyresturl)
+            self._py4.delete_network(network=net_suid,
+                                     base_url=self._args.cyresturl)
+            logger.debug(res)
+
+            layout_aspect = self._ndexextra.\
+                extract_layout_aspect_from_cx(input_cx_file=tmp_cx_file)
+            network = ndex2.create_nice_cx_from_file(self._cx_network)
+            network.set_opaque_aspect('cartesianLayout', layout_aspect)
+            with open(self._cx_network, 'w') as f:
+                json.dump(network.to_cx(), f)
+        finally:
+            shutil.rmtree(temp_dir)
+
 
 def main(args):
     """
@@ -1013,7 +1135,7 @@ def main(args):
 
     The configuration file should be formatted as follows:
 
-    [<value in --profile (default dev)>]
+    [<value in --profile (default ndexstringloader)>]
 
     {user} = <NDEx username>
     {password} = <NDEx password>
@@ -1025,6 +1147,9 @@ def main(args):
     network with 0.7 as the cutoff (default value) and once
     with --cutoffscore 0 to upload the full STRING network.
     
+    By default Cytoscape must be running to generate the layout for each 
+    network. To avoid this requirement add this flag to use networkx 
+    spring layout: --layout spring
 
     """.format(confname=NDExUtilConfig.CONFIG_FILE,
                user=NDExUtilConfig.USER,
@@ -1039,9 +1164,9 @@ def main(args):
         _setup_logging(theargs)
         loader = NDExSTRINGLoader(theargs)
         status_code = loader.run()
-        if (status_code != SUCCESS_CODE):
+        if status_code != SUCCESS_CODE:
             return ERROR_CODE
-        return loader.load_to_NDEx()
+        return loader.load_to_ndex()
     except Exception as e:
         print("\n{}: {}".format(type(e).__name__, e))
         return ERROR_CODE
