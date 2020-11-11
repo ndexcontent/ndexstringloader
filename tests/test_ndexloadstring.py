@@ -18,6 +18,7 @@ from requests.exceptions import Timeout
 
 from ndexutil.config import NDExUtilConfig
 from ndexstringloader.ndexloadstring import NDExSTRINGLoader
+from ndexstringloader.exceptions import NDExSTRINGLoaderError
 import ndexstringloader
 from ndexstringloader import ndexloadstring
 from ndex2.nice_cx_network import NiceCXNetwork
@@ -328,6 +329,8 @@ class TestNdexstringloader(unittest.TestCase):
         expected_args['iconurl'] = 'https://home.ndexbio.org/img/STRING-logo.png'
         expected_args['loadplan'] = os.path.join(ndexloadstring.get_package_dir(), ndexloadstring.STRING_LOAD_PLAN)
         expected_args['logconf'] = None
+        expected_args['layout'] = '-'
+        expected_args['cyresturl'] = 'http://localhost:1234/v1'
         expected_args['profile'] = 'ndexstringloader'
         expected_args['skipdownload'] = False
         expected_args['skipupload'] = False
@@ -942,7 +945,7 @@ class TestNdexstringloader(unittest.TestCase):
         network_attributes = loader._init_network_attributes()
         network_attributes['name'] = self._network_name
 
-        loader._generate_CX_file(network_attributes)
+        loader._generate_cx_file(network_attributes)
 
         network_in_nice_cx_1 = ndex2.create_nice_cx_from_file(temp_cx_network)
 
@@ -1115,29 +1118,29 @@ class TestNdexstringloader(unittest.TestCase):
             m.get(_names_file_url, text='name data returned by the get', status_code=200)
             m.get(_entrez_ids_file_url, text='entrez data returned by the get', status_code=200)
             m.get(_uniprot_file, text='uniprot data returned by the get', status_code=200)
-            assert loader._download_STRING_files() == 0
+            assert loader._download_string_files() == 0
 
             # test scenario when failed to download _protein_links_url
             m.get(_protein_links_url, text='data returned by the get', status_code=not_found_code)
-            assert loader._download_STRING_files() == not_found_code
+            assert loader._download_string_files() == not_found_code
 
             # test scenario when failed to download _names_file_url
             m.get(_protein_links_url, text='data returned by the get', status_code=200)
             m.get(_names_file_url, text='name data returned by the get', status_code=not_found_code)
-            assert loader._download_STRING_files() == not_found_code
+            assert loader._download_string_files() == not_found_code
 
             # test scenario when failed to download _entrez_ids_file_url
             m.get(_protein_links_url, text='protein data returned by the get', status_code=200)
             m.get(_names_file_url, text='name data returned by the get', status_code=200)
             m.get(_entrez_ids_file_url, text='entrez data returned by the get', status_code=not_found_code)
-            assert loader._download_STRING_files() == not_found_code
+            assert loader._download_string_files() == not_found_code
 
             # test scenario when failed to download _uniprot_file
             m.get(_protein_links_url, text='protein data returned by the get', status_code=200)
             m.get(_names_file_url, text='name data returned by the get', status_code=200)
             m.get(_entrez_ids_file_url, text='entrez data returned by the get', status_code=200)
             m.get(_uniprot_file, text='uniprot data returned by the get', status_code=not_found_code)
-            assert loader._download_STRING_files() == not_found_code
+            assert loader._download_string_files() == not_found_code
 
     def test_0270_unpack_STRING_files(self):
 
@@ -1386,14 +1389,14 @@ class TestNdexstringloader(unittest.TestCase):
         loader.__setattr__('_user', user)
         loader.__setattr__('_pass', 'pass')
         loader.__setattr__('_server', 'server')
-        received_summaries = loader.get_network_summaries_from_NDEx_server()
+        received_summaries = loader.get_network_summaries_from_ndex_server()
         self.assertEqual(network_summaries, received_summaries)
         mockndex.get_network_summaries_for_user.assert_called_with(user)
 
         # test exception raised by get_network_summaries_for_user; we should receive ndexloadstring.ERROR_CODE
         # in this case
         mockndex.get_network_summaries_for_user.side_effect = Exception()
-        status = loader.get_network_summaries_from_NDEx_server()
+        status = loader.get_network_summaries_from_ndex_server()
         mockndex.get_network_summaries_for_user.assert_called_with(user)
         self.assertEqual(mockndex.get_network_summaries_for_user.call_count, 2)
         self.assertEqual(ndexloadstring.ERROR_CODE, status)
@@ -1414,14 +1417,14 @@ class TestNdexstringloader(unittest.TestCase):
         loader.__setattr__('_user', user)
         loader.__setattr__('_pass', 'pass')
         loader.__setattr__('_server', 'server')
-        received_summaries = loader.get_network_summaries_from_NDEx_server()
+        received_summaries = loader.get_network_summaries_from_ndex_server()
         self.assertEqual(network_summaries, received_summaries)
         mockndex.get_network_summaries_for_user.assert_called_with(user)
 
         # test exception raised by get_network_summaries_for_user; we should receive ndexloadstring.ERROR_CODE
         # in this case
         mockndex.get_network_summaries_for_user.side_effect = Exception()
-        status = loader.get_network_summaries_from_NDEx_server()
+        status = loader.get_network_summaries_from_ndex_server()
         mockndex.get_network_summaries_for_user.assert_called_with(user)
         self.assertEqual(mockndex.get_network_summaries_for_user.call_count, 2)
         self.assertEqual(ndexloadstring.ERROR_CODE, status)
@@ -1449,10 +1452,10 @@ class TestNdexstringloader(unittest.TestCase):
 
         loader._check_if_data_dir_exists = MagicMock(return_value=False)
         loader._is_valid_update_uuid = MagicMock(return_value=True)
-        loader._download_STRING_files = MagicMock(return_value=ndexloadstring.ERROR_CODE)
+        loader._download_string_files = MagicMock(return_value=ndexloadstring.ERROR_CODE)
         self.assertEqual(loader.run(), ndexloadstring.ERROR_CODE)
 
-        loader._download_STRING_files = MagicMock(return_value=ndexloadstring.SUCCESS_CODE)
+        loader._download_string_files = MagicMock(return_value=ndexloadstring.SUCCESS_CODE)
         loader._unpack_STRING_files = MagicMock(return_value=ndexloadstring.ERROR_CODE)
         self.assertEqual(loader.run(), ndexloadstring.ERROR_CODE)
 
@@ -1500,11 +1503,11 @@ class TestNdexstringloader(unittest.TestCase):
         network_summaries = None
 
         network_attributes = loader._init_network_attributes(network_summaries)
-        loader._generate_CX_file = MagicMock(return_value=(3, 4))
+        loader._generate_cx_file = MagicMock(return_value=(3, 4))
         loader.get_summary_from_summaries = MagicMock()
-        loader.prepare_CX()
+        loader.prepare_cx()
 
-        loader._generate_CX_file.assert_called_with(network_attributes)
+        loader._generate_cx_file.assert_called_with(network_attributes)
         loader.get_summary_from_summaries.assert_not_called()
 
         network_summaries = [
@@ -1513,15 +1516,15 @@ class TestNdexstringloader(unittest.TestCase):
             {'name':'Network 3', 'externalId':'333-333-333'},
             {'name':'Network 4', 'externalId':'444-444-444'}
         ]
-        loader.prepare_CX(network_summaries)
-        loader._generate_CX_file.assert_called()
+        loader.prepare_cx(network_summaries)
+        loader._generate_cx_file.assert_called()
         loader.get_summary_from_summaries.assert_called()
 
     def test_0380_load_to_NDEx(self):
         loader = NDExSTRINGLoader(self._args)
 
         loader.create_ndex_connection = MagicMock(return_value=None)
-        self.assertEqual(loader.load_to_NDEx(), ndexloadstring.ERROR_CODE)
+        self.assertEqual(loader.load_to_ndex(), ndexloadstring.ERROR_CODE)
 
 
         user_name = 'aaa'
@@ -1532,8 +1535,8 @@ class TestNdexstringloader(unittest.TestCase):
         loader.__setattr__('_user', user_name)
 
         loader.create_ndex_connection = MagicMock()
-        loader.get_network_summaries_from_NDEx_server = MagicMock(return_value=ndexloadstring.ERROR_CODE)
-        self.assertEqual(loader.load_to_NDEx(), ndexloadstring.ERROR_CODE)
+        loader.get_network_summaries_from_ndex_server = MagicMock(return_value=ndexloadstring.ERROR_CODE)
+        self.assertEqual(loader.load_to_ndex(), ndexloadstring.ERROR_CODE)
 
         network_summaries = [
             {'name':'Network 1', 'externalId':'111-111-111'},
@@ -1541,10 +1544,10 @@ class TestNdexstringloader(unittest.TestCase):
             {'name':'Network 3', 'externalId':'333-333-333'},
             {'name':'Network 4', 'externalId':'444-444-444'}
         ]
-        loader.get_network_summaries_from_NDEx_server = MagicMock(return_value=network_summaries)
+        loader.get_network_summaries_from_ndex_server = MagicMock(return_value=network_summaries)
         loader._template_UUID = 'e9a889d1-1b49-11e9-a05d-525400c25d22'
         loader.get_template_from_server = MagicMock(return_value=ndexloadstring.ERROR_CODE)
-        self.assertEqual(loader.load_to_NDEx(), ndexloadstring.ERROR_CODE)
+        self.assertEqual(loader.load_to_ndex(), ndexloadstring.ERROR_CODE)
         loader.get_template_from_server.assert_called_with(network_summaries)
 
 
@@ -1554,37 +1557,37 @@ class TestNdexstringloader(unittest.TestCase):
         loader._update_UUID = network_summaries[index]['externalId']
         loader._get_network_name = MagicMock(return_value=network_name)
 
-        loader.prepare_CX = MagicMock()
+        loader.prepare_cx = MagicMock()
         loader._update_network_on_server = MagicMock(return_value=ndexloadstring.ERROR_CODE)
-        self.assertEqual(loader.load_to_NDEx(), ndexloadstring.ERROR_CODE)
+        self.assertEqual(loader.load_to_ndex(), ndexloadstring.ERROR_CODE)
 
         loader._update_network_on_server = MagicMock(return_value=ndexloadstring.SUCCESS_CODE)
-        self.assertEqual(loader.load_to_NDEx(), ndexloadstring.SUCCESS_CODE)
+        self.assertEqual(loader.load_to_ndex(), ndexloadstring.SUCCESS_CODE)
         loader._update_network_on_server.assert_called_with(network_name, loader._update_UUID)
 
         loader.get_network_uuid = MagicMock(return_value=ndexloadstring.ERROR_CODE)
-        self.assertEqual(loader.load_to_NDEx(), ndexloadstring.ERROR_CODE)
+        self.assertEqual(loader.load_to_ndex(), ndexloadstring.ERROR_CODE)
         loader.get_network_uuid.assert_called_with(network_name, network_summaries)
 
         # test the else branch of load_to_NDEx() where self._update_UUID is not specified
         loader._update_UUID = None
-        self.assertEqual(loader.load_to_NDEx(), ndexloadstring.ERROR_CODE)
+        self.assertEqual(loader.load_to_ndex(), ndexloadstring.ERROR_CODE)
 
         loader.get_network_uuid = MagicMock(return_value=None)
         loader._load_network_to_server = MagicMock(return_value=ndexloadstring.ERROR_CODE)
-        self.assertEqual(loader.load_to_NDEx(), ndexloadstring.ERROR_CODE)
+        self.assertEqual(loader.load_to_ndex(), ndexloadstring.ERROR_CODE)
         loader._load_network_to_server.assert_called_with(network_name)
         loader._load_network_to_server = MagicMock(return_value=ndexloadstring.SUCCESS_CODE)
-        self.assertEqual(loader.load_to_NDEx(), ndexloadstring.SUCCESS_CODE)
+        self.assertEqual(loader.load_to_ndex(), ndexloadstring.SUCCESS_CODE)
 
         network_id = '84a129d1-1b49-11e9-a05d-525400c25daa'
         loader.get_network_uuid = MagicMock(return_value=network_id)
         loader._update_network_on_server = MagicMock(return_value=ndexloadstring.SUCCESS_CODE)
-        self.assertEqual(loader.load_to_NDEx(), ndexloadstring.SUCCESS_CODE)
+        self.assertEqual(loader.load_to_ndex(), ndexloadstring.SUCCESS_CODE)
         loader._update_network_on_server.assert_called_with(network_name, network_id)
 
         loader._update_network_on_server = MagicMock(return_value=ndexloadstring.ERROR_CODE)
-        self.assertEqual(loader.load_to_NDEx(), ndexloadstring.ERROR_CODE)
+        self.assertEqual(loader.load_to_ndex(), ndexloadstring.ERROR_CODE)
         loader._update_network_on_server.assert_called_with(network_name, network_id)
 
         # test the  branch where user has to manually enter 'y' or 'n'. This happens when user wants to update
@@ -1595,19 +1598,19 @@ class TestNdexstringloader(unittest.TestCase):
 
         original_input = __builtins__['input']
         __builtins__['input'] = lambda _: 'n'
-        self.assertEqual(loader.load_to_NDEx(), ndexloadstring.SUCCESS_CODE)
+        self.assertEqual(loader.load_to_ndex(), ndexloadstring.SUCCESS_CODE)
 
         __builtins__['input'] = lambda _: 'y'
-        loader.prepare_CX = MagicMock()
+        loader.prepare_cx = MagicMock()
         loader._load_network_to_server = MagicMock(return_value=ndexloadstring.SUCCESS_CODE)
-        self.assertEqual(loader.load_to_NDEx(), ndexloadstring.SUCCESS_CODE)
+        self.assertEqual(loader.load_to_ndex(), ndexloadstring.SUCCESS_CODE)
         loader._load_network_to_server.assert_called_with(network_name)
 
         # emulate getting style from local disk; we already emulated getting style from server above
         # with loader._template_UUID = 'e9a889d1-1b49-11e9-a05d-525400c25d22'
         loader._load_style_template = MagicMock()
         loader._template_UUID = None
-        self.assertEqual(loader.load_to_NDEx(), ndexloadstring.SUCCESS_CODE)
+        self.assertEqual(loader.load_to_ndex(), ndexloadstring.SUCCESS_CODE)
         loader._load_style_template.assert_called_with()
 
     def test_0390_main(self):
@@ -1633,11 +1636,11 @@ class TestNdexstringloader(unittest.TestCase):
         self.assertEqual(res, ndexloadstring.ERROR_CODE)
 
         ndexloadstring.NDExSTRINGLoader.return_value.run.return_value = ndexloadstring.SUCCESS_CODE
-        ndexloadstring.NDExSTRINGLoader.return_value.load_to_NDEx.return_value = ndexloadstring.ERROR_CODE
+        ndexloadstring.NDExSTRINGLoader.return_value.load_to_ndex.return_value = ndexloadstring.ERROR_CODE
         res = ndexloadstring.main(['myprog.py', '--conf', confile, '--profile', profile, temp_dir])
         self.assertEqual(res, ndexloadstring.ERROR_CODE)
 
-        ndexloadstring.NDExSTRINGLoader.return_value.load_to_NDEx.return_value = ndexloadstring.SUCCESS_CODE
+        ndexloadstring.NDExSTRINGLoader.return_value.load_to_ndex.return_value = ndexloadstring.SUCCESS_CODE
         res = ndexloadstring.main(['myprog.py', '--conf', confile, '--profile', profile, temp_dir])
         self.assertEqual(res, ndexloadstring.SUCCESS_CODE)
 
@@ -1671,7 +1674,7 @@ class TestNdexstringloader(unittest.TestCase):
 
         loader = NDExSTRINGLoader(self._args)
 
-        loader._download_STRING_files()
+        loader._download_string_files()
 
         full_file = loader.__getattribute__('_full_file_name') + '.gz'
         names_file = loader.__getattribute__('_names_file') + '.gz'
@@ -1778,7 +1781,7 @@ class TestNdexstringloader(unittest.TestCase):
         loader._cx_network = os.path.join(self._args.datadir, 'my.cx')
         with open(loader._cx_network, 'w') as f:
             json.dump(net.to_cx(), f)
-        loader._apply_simple_spring_layout(edge_count=len(net.get_edges()))
+        loader._apply_simple_spring_layout()
         net = ndex2.create_nice_cx_from_file(loader._cx_network)
         aspect = net.get_opaque_aspect('cartesianLayout')
         self.assertEqual(2, len(aspect))
@@ -1789,7 +1792,7 @@ class TestNdexstringloader(unittest.TestCase):
             net.create_node(str(x))
         with open(loader._cx_network, 'w') as f:
             json.dump(net.to_cx(), f)
-        loader._apply_simple_spring_layout(edge_count=len(net.get_edges()))
+        loader._apply_simple_spring_layout()
         net = ndex2.create_nice_cx_from_file(loader._cx_network)
         aspect = net.get_opaque_aspect('cartesianLayout')
         self.assertEqual(19, len(aspect))
@@ -1800,7 +1803,7 @@ class TestNdexstringloader(unittest.TestCase):
             net.create_node(str(x))
         with open(loader._cx_network, 'w') as f:
             json.dump(net.to_cx(), f)
-        loader._apply_simple_spring_layout(edge_count=len(net.get_edges()))
+        loader._apply_simple_spring_layout()
         net = ndex2.create_nice_cx_from_file(loader._cx_network)
         aspect = net.get_opaque_aspect('cartesianLayout')
         self.assertEqual(99, len(aspect))
@@ -1811,28 +1814,11 @@ class TestNdexstringloader(unittest.TestCase):
             net.create_node(str(x))
         with open(loader._cx_network, 'w') as f:
             json.dump(net.to_cx(), f)
-        loader._apply_simple_spring_layout(edge_count=len(net.get_edges()))
+        loader._apply_simple_spring_layout()
 
         net = ndex2.create_nice_cx_from_file(loader._cx_network)
         aspect = net.get_opaque_aspect('cartesianLayout')
         self.assertEqual(101, len(aspect))
-
-        net = NiceCXNetwork()
-        for x in range(0, 101):
-            net.create_node(str(x))
-        # try with more edges then cutoff
-        for x in range(0, 10):
-            net.create_edge(0, 1)
-        self.assertEqual(10, len(net.get_edges()))
-        self._args.layoutedgecutoff = 5
-        loader = NDExSTRINGLoader(self._args)
-        loader._cx_network = os.path.join(self._args.datadir, 'my.cx')
-        with open(loader._cx_network, 'w') as f:
-            json.dump(net.to_cx(), f)
-        loader._apply_simple_spring_layout(edge_count=len(net.get_edges()))
-        net = ndex2.create_nice_cx_from_file(loader._cx_network)
-        aspect = net.get_opaque_aspect('cartesianLayout')
-        self.assertEqual(None, aspect)
 
     def test_update_network_on_server_skipupload(self):
 
@@ -1851,3 +1837,136 @@ class TestNdexstringloader(unittest.TestCase):
         self.assertEqual(0, loader._load_network_to_server('foo'))
 
         loader._ndex.save_cx_stream_as_new_network.assert_not_called()
+
+    def test_apply_cytoscape_layout_ping_failed(self):
+        p = MagicMock()
+        p.datadir = '/foo'
+        p.layout = 'grid'
+        mockpy4 = MagicMock()
+        mockpy4.cytoscape_ping = MagicMock(side_effect=Exception('error'))
+        loader = NDExSTRINGLoader(p, py4cyto=mockpy4)
+        loader._cx_network = '/foo/ha.cx'
+        try:
+            loader._apply_cytoscape_layout()
+            self.fail('Expected NdexBioGRIDLoaderError')
+        except NDExSTRINGLoaderError as e:
+            self.assertEqual('Cytoscape needs to be running '
+                             'to run layout: grid', str(e))
+
+    def test_apply_cytoscape_layout_networks_not_in_dict(self):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            p = MagicMock()
+            p.layout = 'grid'
+            p.datadir = temp_dir
+            mockpy4 = MagicMock()
+            mockpy4.import_network_from_file = MagicMock(return_value={})
+            loader = NDExSTRINGLoader(p, py4cyto=mockpy4)
+            net = NiceCXNetwork()
+            for x in range(10):
+                net.create_node('node' + str(x))
+
+            loader._cx_network = os.path.join(p.datadir, 'foo.cx')
+            with open(loader._cx_network, 'w') as f:
+                json.dump(net.to_cx(), f)
+            try:
+                loader._apply_cytoscape_layout()
+                self.fail('Expected NdexBioGRIDLoaderError')
+            except NDExSTRINGLoaderError as e:
+                self.assertTrue(str(e).startswith('Error network view'))
+        finally:
+            shutil.rmtree(temp_dir)
+
+    def test_apply_cytoscape_layout_networks_success(self):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            p = MagicMock()
+            p.layout = 'grid'
+            p.datadir = temp_dir
+            mockpy4 = MagicMock()
+            imp_res = {'networks': ['netid']}
+            mockpy4.import_network_from_file = MagicMock(return_value=imp_res)
+            mockpy4.export_network = MagicMock(return_value='')
+            loader = NDExSTRINGLoader(p, py4cyto=mockpy4)
+            loader._ndexextra.extract_layout_aspect_from_cx = MagicMock(return_value={'cartesianLayout': []})
+            net = NiceCXNetwork()
+            for x in range(10):
+                net.create_node('node' + str(x))
+            loader._cx_network = os.path.join(p.datadir, 'foo.cx')
+            with open(loader._cx_network, 'w') as f:
+                json.dump(net.to_cx(), f)
+            loader._apply_cytoscape_layout()
+            net = ndex2.create_nice_cx_from_file(loader._cx_network)
+            self.assertEqual([{'cartesianLayout': []}],
+                             net.get_opaque_aspect('cartesianLayout'))
+        finally:
+            shutil.rmtree(temp_dir)
+
+    def test_prepare_cx_too_many_edges(self):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            p = MagicMock()
+            p.layout = 'grid'
+            p.datadir = temp_dir
+            p.layoutedgecutoff = 100
+
+            loader = NDExSTRINGLoader(p)
+            loader._init_network_attributes = MagicMock(return_value={})
+            loader._generate_cx_file = MagicMock(return_value=(10, 101))
+            loader.prepare_cx()
+            loader._init_network_attributes.assert_called_once_with(None)
+            loader._generate_cx_file.assert_called_once_with({})
+        finally:
+            shutil.rmtree(temp_dir)
+
+    def test_prepare_cx_spring_layout(self):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            p = MagicMock()
+            p.layout = 'spring'
+            p.datadir = temp_dir
+            p.layoutedgecutoff = 100
+
+            loader = NDExSTRINGLoader(p)
+            loader._cx_network = os.path.join(temp_dir, 'foo.cx')
+
+            # make a dummy network
+            net = NiceCXNetwork()
+            for x in range(10):
+                net.create_node('node' + str(x))
+            loader._cx_network = os.path.join(p.datadir, 'foo.cx')
+            with open(loader._cx_network, 'w') as f:
+                json.dump(net.to_cx(), f)
+
+            loader._init_network_attributes = MagicMock(return_value={})
+            loader._generate_cx_file = MagicMock(return_value=(10, 0))
+            loader.prepare_cx()
+            loader._init_network_attributes.assert_called_once_with(None)
+            loader._generate_cx_file.assert_called_once_with({})
+
+            net = ndex2.create_nice_cx_from_file(loader._cx_network)
+            self.assertEqual(10, len(net.get_opaque_aspect('cartesianLayout')))
+        finally:
+            shutil.rmtree(temp_dir)
+
+    def test_prepare_cx_default_cyto_layout(self):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            p = MagicMock()
+            p.layout = '-'
+            p.datadir = temp_dir
+            p.layoutedgecutoff = 100
+
+            loader = NDExSTRINGLoader(p)
+            loader._cx_network = os.path.join(temp_dir, 'foo.cx')
+
+            loader._init_network_attributes = MagicMock(return_value={})
+            loader._generate_cx_file = MagicMock(return_value=(10, 0))
+            loader._apply_cytoscape_layout = MagicMock()
+            loader.prepare_cx()
+            loader._init_network_attributes.assert_called_once_with(None)
+            loader._generate_cx_file.assert_called_once_with({})
+            loader._apply_cytoscape_layout.assert_called_once_with()
+
+        finally:
+            shutil.rmtree(temp_dir)
