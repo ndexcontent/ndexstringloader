@@ -25,7 +25,7 @@ This tool downloads and unpacks the `STRING <https://string-db.org/>`_ files bel
 
     `human.name_2_string.tsv.gz <https://string-db.org/mapping_files/STRING_display_names/human.name_2_string.tsv.gz>`_
 
-    `human.entrez_2_string.2018.tsv.gz <https://stringdb-static.org/mapping_files/entrez/human.entrez_2_string.2018.tsv.gz>`_
+    `human.entrez_2_string.2018.tsv.gz <https://string-db.org/mapping_files/entrez/human.entrez_2_string.2018.tsv.gz>`__
 
     `human.uniprot_2_string.2018.tsv.gz <https://string-db.org/mapping_files/uniprot/human.uniprot_2_string.2018.tsv.gz>`_
 
@@ -41,8 +41,12 @@ If not, then user is asked if (s)he wants to create a new network. When network 
 changed; network attributes are not modified.
 
 
+.. note::
+
+    :code:`--stringversion` overrides default version of :code:`11.0` for all files with a version when downloaded
+
 **1\)** Below is an example of a record
-from `9606.protein.links.full.v11.0.txt.gz <https://stringdb-static.org/download/protein.links.full.v11.0/9606.protein.links.full.v11.0.txt.gz>`_
+from `9606.protein.links.full.v11.0.txt.gz <https://stringdb-static.org/download/protein.links.full.v11.0/9606.protein.links.full.v11.0.txt.gz>`__
 
 .. code-block::
 
@@ -65,12 +69,12 @@ When processing first column :code:`protein1`, the script
 
 replaces :code:`Ensembl Id` with a :code:`display name`, for example :code:`9606.ENSP00000261819` becomes :code:`ANAPC5`. Mapping of
 display names to :code:`Enseml Ids` is found in
-`human.name_2_string.tsv.gz <https://string-db.org/mapping_files/STRING_display_names/human.name_2_string.tsv.gz>`_
+`human.name_2_string.tsv.gz <https://string-db.org/mapping_files/STRING_display_names/human.name_2_string.tsv.gz>`__
 
-uses `human.uniprot_2_string.2018.tsv.gz <https://string-db.org/mapping_files/uniprot/human.uniprot_2_string.2018.tsv.gz>`_
+uses `human.uniprot_2_string.2018.tsv.gz <https://string-db.org/mapping_files/uniprot/human.uniprot_2_string.2018.tsv.gz>`__
 to create :code:`represents` value.  For example, :code:`represents` for :code:`9606.ENSP00000261819` is :code:`uniprot:Q9UJX4`
 
-uses `human.entrez_2_string.2018.tsv.gz <https://stringdb-static.org/mapping_files/entrez/human.entrez_2_string.2018.tsv.gz>`_
+uses `human.entrez_2_string.2018.tsv.gz <https://string-db.org/mapping_files/entrez/human.entrez_2_string.2018.tsv.gz>`__
 to create list of aliases for the current protein.  Thus, list of aliases for :code:`9606.ENSP00000261819` is
 :code:`ncbigene:51433|ensembl:ENSP00000261819`
 
