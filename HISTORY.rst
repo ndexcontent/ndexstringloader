@@ -2,7 +2,16 @@
 History
 =======
 
-1.0.0 (11-11-2020)
+1.0.1 (2021-12-22)
+-------------------
+
+* Fixed bug where ``--stringversion`` was being ignored when
+  downloading data files
+
+* Changed URL to `human.entrez_2_string.2018.tsv.gz` cause it
+  moved on STRING server
+
+1.0.0 (2020-11-11)
 ------------------
 
 * New default behavior: **force-directed-cl** layout is now applied on
@@ -10,7 +19,7 @@ History
   Alternate Cytoscape layouts and the networkx "spring" layout can be
   run by setting appropriate value via the new **--layout** flag
 
-0.3.0 (10-28-2020)
+0.3.0 (2020-10-28)
 ------------------
 
 * Added ``--skipupload`` that lets caller skip upload of network to NDEx

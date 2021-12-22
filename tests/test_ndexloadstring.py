@@ -1842,6 +1842,7 @@ class TestNdexstringloader(unittest.TestCase):
         p = MagicMock()
         p.datadir = '/foo'
         p.layout = 'grid'
+        p.stringversion = '11.0'
         mockpy4 = MagicMock()
         mockpy4.cytoscape_ping = MagicMock(side_effect=Exception('error'))
         loader = NDExSTRINGLoader(p, py4cyto=mockpy4)
@@ -1859,6 +1860,7 @@ class TestNdexstringloader(unittest.TestCase):
             p = MagicMock()
             p.layout = 'grid'
             p.datadir = temp_dir
+            p.stringversion = '11.0'
             mockpy4 = MagicMock()
             mockpy4.import_network_from_file = MagicMock(return_value={})
             loader = NDExSTRINGLoader(p, py4cyto=mockpy4)
@@ -1883,6 +1885,7 @@ class TestNdexstringloader(unittest.TestCase):
             p = MagicMock()
             p.layout = 'grid'
             p.datadir = temp_dir
+            p.stringversion = '11.0'
             mockpy4 = MagicMock()
             imp_res = {'networks': ['netid']}
             mockpy4.import_network_from_file = MagicMock(return_value=imp_res)
@@ -1909,6 +1912,7 @@ class TestNdexstringloader(unittest.TestCase):
             p.layout = 'grid'
             p.datadir = temp_dir
             p.layoutedgecutoff = 100
+            p.stringversion = '11.0'
 
             loader = NDExSTRINGLoader(p)
             loader._init_network_attributes = MagicMock(return_value={})
@@ -1926,6 +1930,7 @@ class TestNdexstringloader(unittest.TestCase):
             p.layout = 'spring'
             p.datadir = temp_dir
             p.layoutedgecutoff = 100
+            p.stringversion = '11.0'
 
             loader = NDExSTRINGLoader(p)
             loader._cx_network = os.path.join(temp_dir, 'foo.cx')
@@ -1956,6 +1961,7 @@ class TestNdexstringloader(unittest.TestCase):
             p.layout = '-'
             p.datadir = temp_dir
             p.layoutedgecutoff = 100
+            p.stringversion = '11.0'
 
             loader = NDExSTRINGLoader(p)
             loader._cx_network = os.path.join(temp_dir, 'foo.cx')
