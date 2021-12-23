@@ -156,7 +156,7 @@ def _parse_arguments(desc, args):
     parser.add_argument('--version', action='version',
                         version=('%(prog)s ' + ndexstringloader.__version__))
     parser.add_argument('--stringversion', help='Version of STRING DB',
-                        default='11.0')
+                        default='11.5')
 
     return parser.parse_args(args)
 
@@ -650,12 +650,22 @@ class NDExSTRINGLoader(object):
 
         return network_name
 
-    def _get_property_from_summary(self, property, summary, default_value):
+    def _get_property_from_summary(self, net_property,
+                                   summary, default_value):
+        """
+
+        :param net_property: Name of network property
+        :type net_property: str
+        :param summary: Network properties from existing network
+        :type summary: dict
+        :param default_value:
+        :return: new value for property
+        """
         if summary is None:
             return default_value
 
         for prop in summary['properties']:
-            if property == prop['predicateString']:
+            if net_property == prop['predicateString']:
                 if prop['dataType'] and prop['dataType'] == 'list_of_string':
                     string_value = prop['value'][1:-1]
                     string_value = string_value.replace('"', '')
@@ -668,26 +678,30 @@ class NDExSTRINGLoader(object):
     def _init_network_attributes(self, summary=None):
         net_attributes = {}
 
-        net_attributes['name'] = self._get_network_name() if summary is None else summary['name']
+        net_attributes['name'] = self._get_network_name()
 
         net_attributes['description'] = '<br>This network contains high confidence (score >= ' \
                     + str(self._cutoffscore) + ') human protein links with combined scores. ' \
                     + 'Edge color was mapped to the combined score value using a gradient from light grey ' \
-                    + '(low Score) to black (high Score).' if summary is None else summary['description']
+                    + '(low Score) to black (high Score).'
 
         rights = 'Attribution 4.0 International (CC BY 4.0)'
         net_attributes['rights'] = self._get_property_from_summary('rights', summary, rights)
 
-        rightsHolder = 'STRING CONSORTIUM'
-        net_attributes['rightsHolder'] = self._get_property_from_summary('rightsHolder', summary, rightsHolder)
+        rights_holder = 'STRING CONSORTIUM'
+        net_attributes['rightsHolder'] = self._get_property_from_summary('rightsHolder',
+                                                                         summary,
+                                                                         rights_holder)
 
-        net_attributes['version'] = self._string_version if summary is None else summary['version']
+        net_attributes['version'] = self._string_version
 
         organism = 'Homo sapiens (human)'
         net_attributes['organism'] = self._get_property_from_summary('organism', summary, organism)
 
-        networkType = ['interactome', 'ppi']
-        net_attributes['networkType'] = self._get_property_from_summary('networkType', summary, networkType)
+        network_type = ['interactome', 'ppi']
+        net_attributes['networkType'] = self._get_property_from_summary('networkType',
+                                                                        summary,
+                                                                        network_type)
 
         reference = '<p>Szklarczyk D, Morris JH, Cook H, Kuhn M, Wyder S, ' \
                     + 'Simonovic M, Santos A, Doncheva NT, Roth A, Bork P, Jensen LJ, von Mering C.<br><b> ' \
@@ -697,12 +711,12 @@ class NDExSTRINGLoader(object):
                     + 'DOI:10.1093/nar/gkw937</a></p>'
         net_attributes['reference'] = self._get_property_from_summary('reference', summary, reference)
 
-        wasDerivedFrom = self._protein_links_url
-        net_attributes['prov:wasDerivedFrom'] = self._get_property_from_summary('prov:wasDerivedFrom', summary, wasDerivedFrom)
+        net_attributes['prov:wasDerivedFrom'] = self._protein_links_url
 
-        wasGeneratedBy = '<a href="https://github.com/ndexcontent/ndexstringloader" target="_blank">ndexstringloader ' \
+        was_generated_by = '<a href="https://github.com/ndexcontent/ndexstringloader" ' \
+                           'target="_blank">ndexstringloader ' \
             + str(ndexstringloader.__version__) + '</a>'
-        net_attributes['prov:wasGeneratedBy'] = self._get_property_from_summary('prov:wasGeneratedBy', summary, wasGeneratedBy)
+        net_attributes['prov:wasGeneratedBy'] = was_generated_by
 
         net_attributes['__iconurl'] = self._iconurl if self._iconurl \
             else self._get_property_from_summary('__iconurl',

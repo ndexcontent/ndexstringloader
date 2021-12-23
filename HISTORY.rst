@@ -2,11 +2,13 @@
 History
 =======
 
-1.0.1 (2021-12-22)
+1.0.2 (2021-12-22)
 -------------------
 
 * Fixed bug where ``--stringversion`` was being ignored when
   downloading data files
+
+* Set default version to ``11.5``
 
 * Changed URL to `human.entrez_2_string.2018.tsv.gz` cause it
   moved on STRING server
