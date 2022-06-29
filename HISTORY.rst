@@ -2,7 +2,7 @@
 History
 =======
 
-1.0.2 (2021-12-22)
+1.0.2 (2022-06-29)
 -------------------
 
 * Fixed bug where ``--stringversion`` was being ignored when
@@ -10,8 +10,16 @@ History
 
 * Set default version to ``11.5``
 
+* Fixed bug where ``version`` network attribute was not being updated
+  with value of ``--stringversion``
+
 * Changed URL to `human.entrez_2_string.2018.tsv.gz` cause it
   moved on STRING server
+
+* ``--cutoffscore`` parameter can now take multiple values and a network
+  for each value will be generated and uploaded to NDEx. The default
+  is set to generate a network with all edges (0.0 --cutoffscore) and a
+  network with edges 0.7 and above
 
 1.0.0 (2020-11-11)
 ------------------

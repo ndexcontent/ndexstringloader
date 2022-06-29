@@ -29,21 +29,28 @@ This tool downloads and unpacks the `STRING <https://string-db.org/>`_ files bel
 
     `human.uniprot_2_string.2018.tsv.gz <https://string-db.org/mapping_files/uniprot/human.uniprot_2_string.2018.tsv.gz>`_
 
-generates a new tsv file, transforms it to CX, and uploads it to NDEx server. Duplicate edges
-(edges that have the same Source and Target nodes and the same value of :code:`combined_score`)
-are included to the generated tsv and CX files only once. Name of the newly generated network includes
-the value of :code:`cutoffscore` argument, for example,
-:code:`STRING - Human Protein Links - High Confidence (Score >= 0.7)`. In case user didn't specify :code:`--update UUID`
-argument, then the network with this name gets over-written in case if already exists on NDEx server;
+This loader generates one or more TSV files, converts them to CX, and uploads them to NDEx server.
+The number of networks generated is dictated by the :code:`--cutoffscore` parameter which by
+default generates two networks, one with all edges `0.0 cutoffscore` and one with edges with score `0.7`
+and above
+
+Duplicate edges (edges that have the same Source and Target nodes and the same value of :code:`combined_score`)
+are included to the generated TSV and CX files only once.
+
+Name of the newly generated network includes the value of :code:`cutoffscore` argument, for example,
+:code:`STRING - Human Protein Links - High Confidence (Score >= 0.7)`.
+
+In case user didn't specify :code:`--update UUID` argument, then the network with this name gets over-written in case if already exists on NDEx server;
 otherwise, a new network is created.
+
 Specifying :code:`--update UUID` command line argument will over-write network with this UUID if it is found.
 If not, then user is asked if (s)he wants to create a new network. When network is updated, only edges and nodes are
-changed; network attributes are not modified.
+changed; network attributes other then **version** are not modified.
 
 
 .. note::
 
-    :code:`--stringversion` overrides default version of :code:`11.0` for all files with a version when downloaded
+    :code:`--stringversion` overrides default version of :code:`11.5` for all files with a version when downloaded
 
 **1\)** Below is an example of a record
 from `9606.protein.links.full.v11.0.txt.gz <https://stringdb-static.org/download/protein.links.full.v11.0/9606.protein.links.full.v11.0.txt.gz>`__
