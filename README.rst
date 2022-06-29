@@ -212,7 +212,7 @@ Here is how this command can be run for **dev** and **prod** targets:
 
    ndexloadstring.py --profile dev tmpdir/
 
-   ndexloadstring.py --profile prod tmpdir/
+   ndexloadstring.py --profile prod tmpdir/ --cutoffscore 0.99 0.95
 
 
 Credits
