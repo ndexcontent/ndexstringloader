@@ -237,17 +237,17 @@ class NDExSTRINGLoader(object):
         ]
 
         self._protein_links_url = \
-            'https://stringdb-static.org/download/protein.links.full.v' +\
+            'https://stringdb-downloads.org/download/protein.links.full.v' +\
             self._string_version + '/9606.protein.links.full.v' +\
             self._string_version + '.txt.gz'
 
         self._names_file_url = \
-            'https://string-db.org/mapping_files/STRING_display_names/human.name_2_string.tsv.gz'
+            'https://stringdb-downloads.org/download/mapping_files/STRING_display_names/human.name_2_string.tsv.gz'
 
         self._entrez_ids_file_url = \
-            'https://string-db.org/mapping_files/entrez/human.entrez_2_string.2018.tsv.gz'
+            'https://stringdb-downloads.org/download/mapping_files/entrez/human.entrez_2_string.2018.tsv.gz'
         self._uniprot_ids_file_url = \
-            'https://string-db.org/mapping_files/uniprot/human.uniprot_2_string.2018.tsv.gz'
+            'https://stringdb-downloads.org/download/mapping_files/uniprot/human.uniprot_2_string.2018.tsv.gz'
 
         self._full_file_name = os.path.join(self._datadir,
                                             '9606.protein.links.full.v' +
