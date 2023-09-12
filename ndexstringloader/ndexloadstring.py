@@ -687,10 +687,10 @@ class NDExSTRINGLoader(object):
         """
 
         if cutoffscore == 0:
-            network_name = 'STRING v.' +  self._string_version + ': Human Protein Links'
+            network_name = 'STRING v' +  self._string_version + ': Human Protein Links'
         else:
             network_name = \
-                'STRING v.' +  self._string_version + ': Human Protein Links - High Confidence (Score >= ' +\
+                'STRING v' +  self._string_version + ': Human Protein Links - High Confidence (Score >= ' +\
                 str(cutoffscore) + ')'
 
         return network_name
@@ -725,10 +725,10 @@ class NDExSTRINGLoader(object):
 
         net_attributes['name'] = self._get_network_name(cutoffscore=cutoffscore)
 
-        net_attributes['description'] = '<br>This network contains high confidence (score >= ' \
+        net_attributes['description'] = '<br>This network contains high confidence (Score >= ' \
                     + str(cutoffscore) + ') human protein links with combined scores. ' \
-                    + 'Edge color was mapped to the combined score value using a yellow-green-purple gradient for scores >' +  str(cutoffscore) + '. ' \
-                    + 'Edges with scores <' +  str(cutoffscore) + ' are shown in grey. '
+                    + 'Edge color was mapped to the combined score value using a yellow-green-purple gradient for Scores >=' +  str(cutoffscore) + '. ' \
+                    + 'Edges with Scores <' +  str(cutoffscore) + ' are shown in grey. '
 
         rights = 'Attribution 4.0 International (CC BY 4.0)'
         net_attributes['rights'] = self._get_property_from_summary('rights', summary, rights)
