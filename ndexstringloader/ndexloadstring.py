@@ -687,10 +687,10 @@ class NDExSTRINGLoader(object):
         """
 
         if cutoffscore == 0:
-            network_name = 'STRING - Human Protein Links'
+            network_name = 'STRING v.' +  self._string_version + ': Human Protein Links'
         else:
             network_name = \
-                'STRING - Human Protein Links - High Confidence (Score >= ' +\
+                'STRING v.' +  self._string_version + ': Human Protein Links - High Confidence (Score >= ' +\
                 str(cutoffscore) + ')'
 
         return network_name
