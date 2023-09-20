@@ -244,7 +244,7 @@ class TestNdexstringloader(unittest.TestCase):
 
         cutoffscore = str(0.7)
 
-        net_attributes['name'] = 'STRING - Human Protein Links - High Confidence (Score >= ' + cutoffscore + ')'
+        net_attributes['name'] = 'STRING v' + stringversion + ': Human Protein Links - High Confidence (Score >= ' + cutoffscore + ')'
 
         net_attributes['description'] = '<br>This network contains high confidence (score >= ' \
                     + cutoffscore + ') human protein links with combined scores. ' \
@@ -1240,7 +1240,7 @@ class TestNdexstringloader(unittest.TestCase):
         self.assertFalse(loader._is_valid_update_uuid())
 
     def test_0300_get_network_name(self):
-        network_name = 'STRING - Human Protein Links'
+        network_name = 'STRING v11.0: Human Protein Links'
 
         loader = NDExSTRINGLoader(self._args)
 
@@ -1250,14 +1250,14 @@ class TestNdexstringloader(unittest.TestCase):
 
         self.assertEqual(network_name, loader._get_network_name(cutoffscore=0.00))
 
-        network_name = 'STRING - Human Protein Links - High Confidence (Score >= 0.7)'
+        network_name = 'STRING v11.0: Human Protein Links - High Confidence (Score >= 0.7)'
         self.assertEqual(network_name, loader._get_network_name(cutoffscore=0.7))
 
         self.assertEqual(network_name, loader._get_network_name(cutoffscore=.7))
 
         self.assertEqual(network_name, loader._get_network_name(cutoffscore=0.700))
 
-        network_name = 'STRING - Human Protein Links - High Confidence (Score >= 0.543)'
+        network_name = 'STRING v11.0: Human Protein Links - High Confidence (Score >= 0.543)'
         self.assertEqual(network_name, loader._get_network_name(cutoffscore=0.543))
 
     def test_0310_get_summary_from_summaries(self):
