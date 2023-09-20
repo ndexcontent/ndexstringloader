@@ -159,8 +159,9 @@ def _parse_arguments(desc, args):
 
     parser.add_argument('--version', action='version',
                         version=('%(prog)s ' + ndexstringloader.__version__))
-    parser.add_argument('--stringversion', help='Version of STRING DB',
-                        default='11.5')
+    parser.add_argument('--stringversion',
+                        default='12.0'),
+                        help='Version of STRING DB',
 
     return parser.parse_args(args)
 
