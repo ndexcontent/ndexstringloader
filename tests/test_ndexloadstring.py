@@ -269,7 +269,7 @@ class TestNdexstringloader(unittest.TestCase):
                     + 'DOI:10.1093/nar/gkw937</a></p>'
 
         net_attributes['prov:wasDerivedFrom'] = \
-            'https://stringdb-downloads.org/download/protein.links.full.v11.0/9606.protein.links.full.v11.0.txt.gz'
+            'https://stringdb-downloads.org/download/protein.links.full.v12.0/9606.protein.links.full.v12.0.txt.gz'
 
         net_attributes['prov:wasGeneratedBy'] = \
             '<a href="https://github.com/ndexcontent/ndexstringloader" target="_blank">ndexstringloader ' \
@@ -1240,7 +1240,7 @@ class TestNdexstringloader(unittest.TestCase):
         self.assertFalse(loader._is_valid_update_uuid())
 
     def test_0300_get_network_name(self):
-        network_name = 'STRING v11.0: Human Protein Links'
+        network_name = 'STRING v12.0: Human Protein Links'
 
         loader = NDExSTRINGLoader(self._args)
 
@@ -1250,14 +1250,14 @@ class TestNdexstringloader(unittest.TestCase):
 
         self.assertEqual(network_name, loader._get_network_name(cutoffscore=0.00))
 
-        network_name = 'STRING v11.0: Human Protein Links - High Confidence (Score >= 0.7)'
+        network_name = 'STRING v12.0: Human Protein Links - High Confidence (Score >= 0.7)'
         self.assertEqual(network_name, loader._get_network_name(cutoffscore=0.7))
 
         self.assertEqual(network_name, loader._get_network_name(cutoffscore=.7))
 
         self.assertEqual(network_name, loader._get_network_name(cutoffscore=0.700))
 
-        network_name = 'STRING v11.0: Human Protein Links - High Confidence (Score >= 0.543)'
+        network_name = 'STRING v12.0: Human Protein Links - High Confidence (Score >= 0.543)'
         self.assertEqual(network_name, loader._get_network_name(cutoffscore=0.543))
 
     def test_0310_get_summary_from_summaries(self):
@@ -1280,7 +1280,7 @@ class TestNdexstringloader(unittest.TestCase):
                      'Nucleic Acids Res. 2017 Jan; 45:D362-68.<br> <a target="_blank" ' +
                      'href="https://doi.org/10.1093/nar/gkw937">DOI:10.1093/nar/gkw937</a></p>'},
                     {'subNetworkId': None, 'predicateString': 'prov:wasDerivedFrom', 'dataType': 'string',
-                     'value': 'https://stringdb-static.org/download/protein.links.full.v11.0/9606.protein.links.full.v11.0.txt.gz'},
+                     'value': 'https://stringdb-downloads.org/download/protein.links.full.v12.0/9606.protein.links.full.v12.0.txt.gz'},
                     {'subNetworkId': None, 'predicateString': 'prov:wasGeneratedBy', 'dataType': 'string',
                      'value': '<a href="https://github.com/ndexcontent/ndexstringloader" target="_blank">ndexstringloader 0.2.2</a>'},
                     {'subNetworkId': None, 'predicateString': '__iconurl', 'dataType': 'string', 'value': 'https://home.ndexbio.org/img/STRING-logo.png'}]
@@ -1302,7 +1302,7 @@ class TestNdexstringloader(unittest.TestCase):
                            'Nucleic Acids Res. 2017 Jan; 45:D362-68.<br> <a target="_blank" ' +
                            'href="https://doi.org/10.1093/nar/gkw937">DOI:10.1093/nar/gkw937</a></p>'},
                  {'subNetworkId': None, 'predicateString': 'prov:wasDerivedFrom', 'dataType': 'string',
-                  'value': 'https://stringdb-static.org/download/protein.links.full.v11.0/9606.protein.links.full.v11.0.txt.gz'},
+                  'value': 'https://stringdb-static.org/download/protein.links.full.v12.0/9606.protein.links.full.v12.0.txt.gz'},
                  {'subNetworkId': None, 'predicateString': 'prov:wasGeneratedBy', 'dataType': 'string',
                   'value': '<a href="https://github.com/ndexcontent/ndexstringloader" target="_blank">ndexstringloader 0.2.2</a>'},
                  {'subNetworkId': None, 'predicateString': '__iconurl', 'dataType': 'string',
@@ -1337,7 +1337,7 @@ class TestNdexstringloader(unittest.TestCase):
                 'Nucleic Acids Res. 2017 Jan; 45:D362-68.<br> <a target="_blank" ' + \
                 'href="https://doi.org/10.1093/nar/gkw937">DOI:10.1093/nar/gkw937</a></p>',
             'prov:wasDerivedFrom' :
-                'https://stringdb-static.org/download/protein.links.full.v11.0/9606.protein.links.full.v11.0.txt.gz',
+                'https://stringdb-downloads.org/download/protein.links.full.v12.0/9606.protein.links.full.v12.0.txt.gz',
             'prov:wasGeneratedBy' :
                 '<a href="https://github.com/ndexcontent/ndexstringloader" target="_blank">ndexstringloader 0.2.2</a>',
             '__iconurl' : 'https://home.ndexbio.org/img/STRING-logo.png'
