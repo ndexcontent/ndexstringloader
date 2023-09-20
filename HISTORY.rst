@@ -2,6 +2,15 @@
 History
 =======
 
+1.0.3 (2023-09-20)
+-------------------
+
+* Updated URL paths to data files because they moved on STRING server
+
+* Version of STRING data used is now appended to the network name.
+
+* Updated default network description and default style template file
+
 1.0.2 (2022-06-29)
 -------------------
 
