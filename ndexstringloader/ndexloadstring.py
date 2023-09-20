@@ -730,8 +730,7 @@ class NDExSTRINGLoader(object):
 
         net_attributes['description'] = '<br>This network contains high confidence (Score >= ' \
                     + str(cutoffscore) + ') human protein links with combined scores. ' \
-                    + 'Edge color was mapped to the combined score value using a yellow-green-purple gradient for Scores >=' +  str(cutoffscore) + '. ' \
-                    + 'Edges with Scores <' +  str(cutoffscore) + ' are shown in grey.'
+                    + 'Edge color was mapped to the combined score value using a yellow-green-purple gradient for Scores >=' +  str(cutoffscore) + '.'
 
         rights = 'Attribution 4.0 International (CC BY 4.0)'
         net_attributes['rights'] = self._get_property_from_summary('rights', summary, rights)
