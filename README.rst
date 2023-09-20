@@ -114,7 +114,7 @@ style template network UUID :code:`--template UUID_of_style_template_network`.
 Specifying both :code:`--template` and :code:`--style` is not allowed.
 
 **6\)**  :code:`9606.protein.links.cx` is then uploaded to NDEx server either replacing
-an existing network (in case :code:`--update UUID` is specified or network with this name already exists),
+an existing network (in case :code:`--update UUID` is specified),
 or creating a new network.
 
 
