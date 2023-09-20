@@ -153,7 +153,9 @@ def _parse_arguments(desc, args):
                         default=DEFAULT_CYREST_API,
                         help='URL of CyREST API. Default value '
                              'is default for locally running Cytoscape')
-    parser.add_argument('--update', help='UUID of network to update')
+    parser.add_argument('--update', help='UUID of network to update. If not set, '
+                                        '(and --skipupload not set), loader '
+                                        'creates new network in NDEx .')
 
     parser.add_argument('--version', action='version',
                         version=('%(prog)s ' + ndexstringloader.__version__))
