@@ -673,13 +673,13 @@ class NDExSTRINGLoader(object):
         If cutoffscore is 0:
 
         ```
-        STRING vXX.X - Human Protein Links
+        STRING v??.? - Human Protein Links
         ```
 
         Otherwise, assuming **cutoffscore** is 0.7:
 
         ```
-        STRING vXX.X - Human Protein Links - High Confidence (Score >= 0.7)
+        STRING v??.? - Human Protein Links - High Confidence (Score >= 0.7)
         ```
 
         :param cutoffscore:
