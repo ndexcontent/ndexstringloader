@@ -243,6 +243,7 @@ class TestNdexstringloader(unittest.TestCase):
         net_attributes = {}
 
         cutoffscore = str(0.7)
+        stringversion = str(11.0)
 
         net_attributes['name'] = 'STRING v' + stringversion + ': Human Protein Links - High Confidence (Score >= ' + cutoffscore + ')'
 
