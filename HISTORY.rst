@@ -7,7 +7,7 @@ History
 
 * Updated URL paths to data files because they moved on STRING server
 
-* Set default STRING version to "12.0"
+* Set default STRING version to ``12.0``
 
 * Version of STRING data used is now appended to the network name.
 
