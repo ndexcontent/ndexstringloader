@@ -17,17 +17,17 @@ NDEx STRING Content Loader
         :alt: Documentation Status
 
 
-Python application for loading STRING data into `NDEx <http://ndexbio.org>`_.
+Python application for loading STRING data into `NDEx <https://www.ndexbio.org>`_.
 
 This tool downloads and unpacks the `STRING <https://string-db.org/>`_ files below
 
-    `9606.protein.links.full.v11.0.txt.gz <https://stringdb-static.org/download/protein.links.full.v11.0/9606.protein.links.full.v11.0.txt.gz>`_
+    `9606.protein.links.full.v12.0.txt.gz <https://stringdb-downloads.org/download/protein.links.full.v12.0/9606.protein.links.full.v12.0.txt.gz>`_
 
-    `human.name_2_string.tsv.gz <https://string-db.org/mapping_files/STRING_display_names/human.name_2_string.tsv.gz>`_
+    `human.name_2_string.tsv.gz <https://stringdb-downloads.org/mapping_files/STRING_display_names/human.name_2_string.tsv.gz>`_
 
-    `human.entrez_2_string.2018.tsv.gz <https://string-db.org/mapping_files/entrez/human.entrez_2_string.2018.tsv.gz>`__
+    `human.entrez_2_string.2018.tsv.gz <https://stringdb-downloads.org/mapping_files/entrez/human.entrez_2_string.2018.tsv.gz>`__
 
-    `human.uniprot_2_string.2018.tsv.gz <https://string-db.org/mapping_files/uniprot/human.uniprot_2_string.2018.tsv.gz>`_
+    `human.uniprot_2_string.2018.tsv.gz <https://stringdb-downloads.org/mapping_files/uniprot/human.uniprot_2_string.2018.tsv.gz>`_
 
 This loader generates one or more TSV files, converts them to CX, and uploads them to NDEx server.
 The number of networks generated is dictated by the :code:`--cutoffscore` parameter which by
@@ -50,10 +50,10 @@ changed; network attributes other then **version** are not modified.
 
 .. note::
 
-    :code:`--stringversion` overrides default version of :code:`11.5` for all files with a version when downloaded
+    :code:`--stringversion` overrides default version of :code:`12.0` for all files with a version when downloaded
 
 **1\)** Below is an example of a record
-from `9606.protein.links.full.v11.0.txt.gz <https://stringdb-static.org/download/protein.links.full.v11.0/9606.protein.links.full.v11.0.txt.gz>`__
+from `9606.protein.links.full.v12.0.txt.gz <https://stringdb-downloads.org/download/protein.links.full.v12.0/9606.protein.links.full.v12.0.txt.gz>`__
 
 .. code-block::
 
