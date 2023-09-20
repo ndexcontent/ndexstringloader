@@ -245,12 +245,12 @@ class TestNdexstringloader(unittest.TestCase):
         cutoffscore = str(0.7)
         stringversion = str(11.0)
 
-        net_attributes['name'] = 'STRING v' + stringversion + ': Human Protein Links - High Confidence (Score >= ' + cutoffscore + ')'
+        net_attributes['name'] = 'STRING v' + self._args['stringversion'] + ': Human Protein Links - High Confidence (Score >= ' + cutoffscore + ')'
 
-        net_attributes['description'] = '<br>This network contains high confidence (score >= ' \
-                    + cutoffscore + ') human protein links with combined scores. ' \
-                    + 'Edge color was mapped to the combined score value using a gradient from light grey ' \
-                    + '(low Score) to black (high Score).'
+        net_attributes['description'] = '<br>This network contains high confidence (Score >= ' \
+                    + str(cutoffscore) + ') human protein links with combined scores. ' \
+                    + 'Edge color was mapped to the combined score value using a yellow-green-purple gradient for Scores >=' +  str(cutoffscore) + '. ' \
+                    + 'Edges with Scores <' +  str(cutoffscore) + ' are shown in grey.'
 
         net_attributes['rights'] = 'Attribution 4.0 International (CC BY 4.0)'
 
@@ -270,7 +270,7 @@ class TestNdexstringloader(unittest.TestCase):
                     + 'DOI:10.1093/nar/gkw937</a></p>'
 
         net_attributes['prov:wasDerivedFrom'] = \
-            'https://stringdb-static.org/download/protein.links.full.v11.0/9606.protein.links.full.v11.0.txt.gz'
+            'https://stringdb-downloads.org/download/protein.links.full.v11.0/9606.protein.links.full.v11.0.txt.gz'
 
         net_attributes['prov:wasGeneratedBy'] = \
             '<a href="https://github.com/ndexcontent/ndexstringloader" target="_blank">ndexstringloader ' \
